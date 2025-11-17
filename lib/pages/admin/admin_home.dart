@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
+
+// Pages
 import 'admin_dashboard_page.dart';
-import 'admin_chat_page.dart';
 import 'admin_settings_page.dart';
+import 'admin_chat_list_page.dart';
+
+// Dialogs
 import 'admin_add_product_dialog.dart';
+import 'admin_edit_product_dialog.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -23,43 +28,50 @@ class _AdminHomeState extends State<AdminHome> {
     final email = auth.user?.email ?? "Unknown";
 
     final pages = [
-      AdminDashboardPage(adminEmail: email),
-      const AdminChatPage(),
+      AdminDashboardPage(
+        adminEmail: email,
+        onEditProduct: (docId, data) {
+          showDialog(
+            context: context,
+            builder: (_) =>
+                AdminEditProductDialog(docId: docId, initialData: data),
+          );
+        },
+      ),
+
+      // CHAT NOW USE LIST OF USERS
+      const AdminChatListPage(),
+
       const AdminSettingsPage(),
     ];
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
         title: const Text(
           "Technomart Admin",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         centerTitle: true,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF111827), Color(0xFF1F2937)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
         actions: [
           IconButton(
             tooltip: "Logout",
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout_rounded, color: Colors.black),
             onPressed: () => auth.logout(),
           ),
         ],
       ),
-      backgroundColor: const Color(0xFF020617),
+
+      backgroundColor: Colors.white,
       body: pages[_currentIndex],
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: const Color(0xFF020617),
-        selectedItemColor: const Color(0xFF38BDF8),
-        unselectedItemColor: const Color(0xFF6B7280),
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF2563EB),
+        unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         items: const [
@@ -77,6 +89,8 @@ class _AdminHomeState extends State<AdminHome> {
           ),
         ],
       ),
+
+      // FAB khusus untuk halaman Home (index 0)
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
@@ -87,7 +101,8 @@ class _AdminHomeState extends State<AdminHome> {
               },
               icon: const Icon(Icons.add_rounded),
               label: const Text("Tambah Produk"),
-              backgroundColor: const Color(0xFF38BDF8),
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
             )
           : null,
     );

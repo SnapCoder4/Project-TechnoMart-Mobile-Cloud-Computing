@@ -1,8 +1,7 @@
+import 'register_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../services/auth_service.dart';
-import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -35,14 +34,12 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo
               Image.asset(
                 'assets/images/technomart.png',
                 height: size.height * 0.2,
               ),
               const SizedBox(height: 32),
 
-              // Email
               TextField(
                 controller: emailC,
                 decoration: const InputDecoration(
@@ -52,7 +49,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 16),
 
-              // Password
               TextField(
                 controller: passC,
                 obscureText: true,
@@ -63,7 +59,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 24),
 
-              // Tombol Login
               loading
                   ? const CircularProgressIndicator()
                   : SizedBox(
@@ -100,7 +95,6 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 24),
 
-              // Navigasi ke Register
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

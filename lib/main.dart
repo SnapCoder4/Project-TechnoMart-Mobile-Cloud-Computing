@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-
 import 'firebase_options.dart';
-import 'services/auth_service.dart';
-import 'pages/auth/login_page.dart';
-import 'pages/admin/admin_home.dart';
 import 'pages/user/user_home.dart';
+import 'pages/auth/login_page.dart';
+import 'services/auth_service.dart';
+import 'pages/admin/admin_home.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,18 +21,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AuthService(),
       child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Technomart',
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF020617),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF020617),
-            elevation: 0,
-          ),
-          useMaterial3: false,
-        ),
-        home: RootRouter(),
+        home: const RootRouter(),
         routes: {
           "/user": (_) => const UserHome(),
           "/admin": (_) => const AdminHome(),
@@ -44,7 +32,7 @@ class MyApp extends StatelessWidget {
 }
 
 class RootRouter extends StatelessWidget {
-  RootRouter({super.key});
+  const RootRouter({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +50,7 @@ class RootRouter extends StatelessWidget {
         final state = snapshot.data!;
 
         if (!state.signedIn) {
-          return LoginPage();
+          return const LoginPage();
         }
 
         if (state.isAdmin) {

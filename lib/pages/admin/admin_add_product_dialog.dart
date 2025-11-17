@@ -1,9 +1,10 @@
 import 'dart:io';
-
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminAddProductDialog extends StatefulWidget {
   const AdminAddProductDialog({super.key});
@@ -13,192 +14,141 @@ class AdminAddProductDialog extends StatefulWidget {
 }
 
 class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
-  final nameC = TextEditingController();
-  final priceC = TextEditingController();
-  final stockC = TextEditingController();
+  final TextEditingController nameCtrl = TextEditingController();
+  final TextEditingController priceCtrl = TextEditingController();
+  final TextEditingController stockCtrl = TextEditingController();
 
-  XFile? _pickedImage;
-  bool saving = false;
+  Uint8List? imageBytes; // Web
+  File? imageFile; // Android/iOS
 
-  @override
-  void dispose() {
-    nameC.dispose();
-    priceC.dispose();
-    stockC.dispose();
-    super.dispose();
-  }
+  bool loading = false;
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final img = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-
-    if (img != null) {
-      setState(() => _pickedImage = img);
+  Future<void> pickImage() async {
+    try {
+      if (Theme.of(context).platform == TargetPlatform.android ||
+          Theme.of(context).platform == TargetPlatform.iOS) {
+        final picker = ImagePicker();
+        final XFile? picked = await picker.pickImage(
+          source: ImageSource.gallery,
+        );
+        if (picked != null) {
+          imageFile = File(picked.path);
+          imageBytes = await picked.readAsBytes();
+          setState(() {});
+        }
+      } else {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          withData: true,
+        );
+        if (result != null) {
+          imageBytes = result.files.first.bytes;
+          setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint("Error picking image: $e");
     }
   }
 
-  Future<String?> _uploadImageAndGetUrl() async {
-    if (_pickedImage == null) return null;
+  Future<void> saveProduct() async {
+    if (nameCtrl.text.isEmpty ||
+        priceCtrl.text.isEmpty ||
+        stockCtrl.text.isEmpty)
+      return;
 
-    final file = File(_pickedImage!.path);
-    final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+    setState(() => loading = true);
 
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('product_images')
-        .child(fileName);
+    try {
+      final base64Image = imageBytes != null ? base64Encode(imageBytes!) : null;
 
-    final uploadTask = await ref.putFile(file);
-    final url = await uploadTask.ref.getDownloadURL();
-    return url;
+      await FirebaseFirestore.instance.collection('products').add({
+        "name": nameCtrl.text.trim(),
+        "price": int.tryParse(priceCtrl.text) ?? 0,
+        "stock": int.tryParse(stockCtrl.text) ?? 0,
+        "image": base64Image ?? "",
+        "createdAt": Timestamp.now(),
+      });
+
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint("Error saving product: $e");
+      setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: const Color(0xFF020617),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        "Tambah Produk",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
+      title: const Text("Tambah Produk"),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: nameC,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Nama produk",
-                labelStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: "Nama Produk"),
             ),
-            const SizedBox(height: 12),
             TextField(
-              controller: priceC,
+              controller: priceCtrl,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Harga (angka)",
-                labelStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
+              decoration: const InputDecoration(labelText: "Harga"),
             ),
-            const SizedBox(height: 12),
             TextField(
-              controller: stockC,
+              controller: stockCtrl,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Stok",
-                labelStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
+              decoration: const InputDecoration(labelText: "Stok"),
             ),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image_rounded, color: Colors.white),
-                label: const Text(
-                  "Pilih Foto Produk",
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (_pickedImage != null)
+            if (imageBytes != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(_pickedImage!.path),
-                  height: 140,
-                  width: double.infinity,
+                child: Image.memory(
+                  imageBytes!,
+                  width: 150,
+                  height: 150,
                   fit: BoxFit.cover,
                 ),
               )
-            else
-              const Text(
-                "Belum ada foto dipilih.",
-                style: TextStyle(color: Colors.white54, fontSize: 12),
+            else if (imageFile != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  imageFile!,
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.cover,
+                ),
               ),
+            TextButton.icon(
+              onPressed: pickImage,
+              icon: const Icon(Icons.image, color: Colors.blue),
+              label: const Text(
+                "Upload Gambar",
+                style: TextStyle(color: Colors.blue),
+              ),
+            ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          child: const Text("Batal"),
           onPressed: () => Navigator.pop(context),
+          child: const Text("Batal", style: TextStyle(color: Colors.black54)),
         ),
-        saving
-            ? const Padding(
-                padding: EdgeInsets.only(right: 16),
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF38BDF8),
-                ),
-                child: const Text("Simpan"),
-                onPressed: () async {
-                  if (nameC.text.isEmpty || priceC.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Nama dan harga produk tidak boleh kosong.",
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-
-                  setState(() => saving = true);
-
-                  try {
-                    final price = int.tryParse(priceC.text) ?? 0;
-                    final stock = int.tryParse(stockC.text) ?? 0;
-
-                    final imageUrl = await _uploadImageAndGetUrl();
-
-                    await FirebaseFirestore.instance
-                        .collection('products')
-                        .add({
-                          'name': nameC.text.trim(),
-                          'price': price,
-                          'stock': stock,
-                          'imageUrl': imageUrl ?? "",
-                          'createdAt': FieldValue.serverTimestamp(),
-                        });
-
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Gagal menyimpan produk: $e")),
-                    );
-                  } finally {
-                    if (mounted) setState(() => saving = false);
-                  }
-                },
-              ),
+        ElevatedButton(
+          onPressed: loading ? null : saveProduct,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+          child: loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              : const Text("Simpan"),
+        ),
       ],
     );
   }

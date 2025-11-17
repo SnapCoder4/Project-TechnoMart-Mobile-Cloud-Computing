@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../services/auth_service.dart';
 import 'user_shop_page.dart';
 import 'user_chat_page.dart';
 import 'user_settings_page.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
 
 class UserHome extends StatefulWidget {
   const UserHome({super.key});
@@ -29,36 +28,29 @@ class _UserHomeState extends State<UserHome> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 2,
         title: const Text(
           "Technomart",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         centerTitle: true,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF111827), Color(0xFF1F2937)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
         actions: [
           IconButton(
             tooltip: "Logout",
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout_rounded, color: Colors.black),
             onPressed: () => auth.logout(),
           ),
         ],
       ),
-      backgroundColor: const Color(0xFF020617),
+      backgroundColor: Colors.white,
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: const Color(0xFF020617),
-        selectedItemColor: const Color(0xFF22C55E),
-        unselectedItemColor: const Color(0xFF6B7280),
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF2563EB),
+        unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         items: const [
