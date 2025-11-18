@@ -13,7 +13,37 @@ class _UserChatPageState extends State<UserChatPage> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
 
-  String get _chatId => FirebaseAuth.instance.currentUser!.uid;
+  String get _userId => FirebaseAuth.instance.currentUser!.uid;
+  String get _userEmail => FirebaseAuth.instance.currentUser!.email ?? '';
+
+  /// Pastikan dokumen header chats/{userId} sudah ada
+  Future<void> _ensureChatHeader() async {
+    final chatDocRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(_userId);
+
+    final snap = await chatDocRef.get();
+    if (!snap.exists) {
+      String displayName = _userEmail;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        displayName = (data['name'] ?? _userEmail) as String;
+      }
+
+      await chatDocRef.set({
+        'userId': _userId,
+        'userName': displayName,
+        'lastMessage': '',
+        'lastSenderRole': 'user',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
 
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
@@ -21,17 +51,58 @@ class _UserChatPageState extends State<UserChatPage> {
 
     _msgCtrl.clear();
 
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(_chatId)
-        .collection('messages')
-        .add({
-          'text': text,
-          'sender': 'user',
-          'createdAt': FieldValue.serverTimestamp(),
-          'isRead': false,
-        });
+    final firestore = FirebaseFirestore.instance;
+    final chatDocRef = firestore.collection('chats').doc(_userId);
+    final messagesRef = chatDocRef.collection('messages');
 
+    // 0) Pastikan header ada
+    await _ensureChatHeader();
+
+    // Cek apakah ini pesan pertama di chat
+    final existingMessages = await messagesRef.limit(1).get();
+    final bool isFirstMessage = existingMessages.docs.isEmpty;
+
+    // 1) Simpan pesan user
+    await messagesRef.add({
+      'text': text,
+      'senderId': _userId,
+      'senderRole': 'user', // user
+      'createdAt': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+
+    // 2) Update header chat (pakai pesan user dulu)
+    await chatDocRef.set({
+      'lastMessage': text,
+      'lastSenderRole': 'user',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 3) Kalau ini pesan pertama, kirim auto-reply dari "bot"
+    if (isFirstMessage) {
+      const botText =
+          "Halo! 👋\n\nTerima kasih sudah menghubungi Technomart.\n"
+          "Admin kami sedang online/offline bergantian.\n"
+          "Pesan kamu akan segera dicek ya. "
+          "Kalau mau, tulis dulu detail pesanan atau kendalanya 🙂";
+
+      await messagesRef.add({
+        'text': botText,
+        'senderId': 'system',
+        'senderRole': 'bot', // <== penting, supaya dianggap lawan bicara
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+
+      // Header di-update pakai pesan bot (biar paling atas di list admin)
+      await chatDocRef.set({
+        'lastMessage': botText,
+        'lastSenderRole': 'bot',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    // 4) Scroll ke paling bawah
     await Future.delayed(const Duration(milliseconds: 150));
     if (_scrollCtrl.hasClients) {
       _scrollCtrl.animateTo(
@@ -42,6 +113,7 @@ class _UserChatPageState extends State<UserChatPage> {
     }
   }
 
+  /// Tandai pesan admin/bot sebagai sudah dibaca di sisi user
   Future<void> _markAdminMessagesAsRead(
     QuerySnapshot<Map<String, dynamic>> snap,
   ) async {
@@ -50,8 +122,10 @@ class _UserChatPageState extends State<UserChatPage> {
 
     for (final doc in snap.docs) {
       final data = doc.data();
-      if (data['sender'] == 'admin' &&
-          (data['isRead'] == false || data['isRead'] == null)) {
+      final role = data['senderRole'] ?? 'user';
+      final isRead = data['isRead'] as bool? ?? false;
+
+      if ((role == 'admin' || role == 'bot') && !isRead) {
         batch.update(doc.reference, {'isRead': true});
         hasUpdate = true;
       }
@@ -71,7 +145,7 @@ class _UserChatPageState extends State<UserChatPage> {
   Widget build(BuildContext context) {
     final messageStream = FirebaseFirestore.instance
         .collection('chats')
-        .doc(_chatId)
+        .doc(_userId)
         .collection('messages')
         .orderBy('createdAt')
         .withConverter<Map<String, dynamic>>(
@@ -82,7 +156,7 @@ class _UserChatPageState extends State<UserChatPage> {
 
     return Column(
       children: [
-        // header kecil biar vibes WA dikit
+        // Header ala WA
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -127,7 +201,6 @@ class _UserChatPageState extends State<UserChatPage> {
                   );
                 }
 
-                // tandai pesan admin sebagai sudah dibaca
                 _markAdminMessagesAsRead(snapshot.data!);
 
                 final docs = snapshot.data!.docs;
@@ -142,10 +215,9 @@ class _UserChatPageState extends State<UserChatPage> {
                   itemBuilder: (context, index) {
                     final data = docs[index].data();
                     final text = data['text'] ?? '';
-                    final sender = data['sender'] ?? 'user';
+                    final role = data['senderRole'] ?? 'user';
 
-                    final bool isUser = sender == 'user';
-                    // user = hijau kanan, admin = putih kiri
+                    final bool isUser = role == 'user';
                     final Alignment align = isUser
                         ? Alignment.centerRight
                         : Alignment.centerLeft;
@@ -153,8 +225,8 @@ class _UserChatPageState extends State<UserChatPage> {
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start;
                     final Color bubbleColor = isUser
-                        ? const Color(0xFFDCF8C6)
-                        : Colors.white;
+                        ? const Color(0xFFDCF8C6) // hijau muda
+                        : Colors.white; // admin/bot putih
 
                     return Align(
                       alignment: align,
