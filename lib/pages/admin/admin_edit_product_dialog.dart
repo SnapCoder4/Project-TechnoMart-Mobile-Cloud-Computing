@@ -133,7 +133,6 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
             ),
             const SizedBox(height: 16),
 
-            // PREVIEW IMAGE
             if (imageBytes != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),

@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminDashboardPage extends StatelessWidget {
   final String adminEmail;
 
-  // Callback untuk tombol edit produk
   final void Function(String docId, Map<String, dynamic> data) onEditProduct;
 
   const AdminDashboardPage({
@@ -50,7 +49,6 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // List Produk Grid
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: productsRef.snapshots(),
@@ -96,7 +94,6 @@ class AdminDashboardPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Gambar Produk
                           if (imageBase64 != null && imageBase64.isNotEmpty)
                             ClipRRect(
                               borderRadius: const BorderRadius.vertical(
@@ -128,7 +125,6 @@ class AdminDashboardPage extends StatelessWidget {
                               ),
                             ),
 
-                          // Info Produk
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
@@ -155,7 +151,6 @@ class AdminDashboardPage extends StatelessWidget {
                             ),
                           ),
 
-                          // Tombol Aksi: Edit & Hapus
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [

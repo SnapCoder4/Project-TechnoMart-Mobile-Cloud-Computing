@@ -17,40 +17,44 @@ class _UserHomeState extends State<UserHome> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final auth = Provider.of<AuthService>(context, listen: false);
     final email = auth.user?.email ?? "Unknown";
 
     final pages = [
-      UserShopPage(userEmail: email),
+      UserShopPage(),
       const UserChatPage(),
       UserSettingsPage(userEmail: email),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        title: const Text(
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: theme.appBarTheme.elevation ?? 1,
+        iconTheme: theme.iconTheme,
+        title: Text(
           "Technomart",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             tooltip: "Logout",
-            icon: const Icon(Icons.logout_rounded, color: Colors.black),
+            icon: Icon(Icons.logout_rounded, color: theme.iconTheme.color),
             onPressed: () => auth.logout(),
           ),
         ],
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF2563EB),
-        unselectedItemColor: Colors.grey,
+        backgroundColor: theme.colorScheme.surface,
+        selectedItemColor: theme.colorScheme.primary,
+        unselectedItemColor: theme.iconTheme.color?.withOpacity(0.6),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         items: const [

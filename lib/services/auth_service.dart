@@ -48,6 +48,7 @@ class AuthService extends ChangeNotifier {
         'name': name,
         'email': email,
         'role': 'user',
+        'address': "",
         'createdAt': FieldValue.serverTimestamp(),
       });
 

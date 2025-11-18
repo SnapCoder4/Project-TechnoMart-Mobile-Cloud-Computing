@@ -1,6 +1,6 @@
-import 'admin_chat_page.dart';
 import 'admin_settings_page.dart';
 import 'admin_dashboard_page.dart';
+import 'admin_chat_list_page.dart';
 import 'package:flutter/material.dart';
 import 'admin_add_product_dialog.dart';
 import 'package:provider/provider.dart';
@@ -33,14 +33,16 @@ class _AdminHomeState extends State<AdminHome> {
           );
         },
       ),
-      const AdminChatPage(),
+
+      const AdminChatListPage(),
+
       const AdminSettingsPage(),
     ];
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 2,
+        elevation: 1,
         title: const Text(
           "Technomart Admin",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
@@ -54,8 +56,10 @@ class _AdminHomeState extends State<AdminHome> {
           ),
         ],
       ),
+
       backgroundColor: Colors.white,
       body: pages[_currentIndex],
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -79,12 +83,13 @@ class _AdminHomeState extends State<AdminHome> {
           ),
         ],
       ),
+
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (_) => AdminAddProductDialog(),
+                  builder: (_) => const AdminAddProductDialog(),
                 );
               },
               icon: const Icon(Icons.add_rounded),

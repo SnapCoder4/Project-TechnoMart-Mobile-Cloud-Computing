@@ -18,8 +18,8 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
   final TextEditingController priceCtrl = TextEditingController();
   final TextEditingController stockCtrl = TextEditingController();
 
-  Uint8List? imageBytes; // Web
-  File? imageFile; // Android/iOS
+  Uint8List? imageBytes;
+  File? imageFile;
 
   bool loading = false;
 
