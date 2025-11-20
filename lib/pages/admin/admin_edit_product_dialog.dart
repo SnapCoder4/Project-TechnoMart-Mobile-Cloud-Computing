@@ -24,22 +24,25 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
   late TextEditingController nameCtrl;
   late TextEditingController priceCtrl;
   late TextEditingController stockCtrl;
+  late TextEditingController descCtrl;
 
   Uint8List? imageBytes;
   File? imageFile;
-  String? imageName;
 
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
-    nameCtrl = TextEditingController(text: widget.initialData['name']);
+    nameCtrl = TextEditingController(text: widget.initialData['name'] ?? "");
     priceCtrl = TextEditingController(
-      text: widget.initialData['price'].toString(),
+      text: (widget.initialData['price'] ?? 0).toString(),
     );
     stockCtrl = TextEditingController(
-      text: widget.initialData['stock'].toString(),
+      text: (widget.initialData['stock'] ?? 0).toString(),
+    );
+    descCtrl = TextEditingController(
+      text: widget.initialData['description'] ?? "",
     );
 
     final img = widget.initialData['image'] as String?;
@@ -59,7 +62,6 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
         if (picked != null) {
           imageFile = File(picked.path);
           imageBytes = await picked.readAsBytes();
-          imageName = picked.name;
           setState(() {});
         }
       } else {
@@ -69,7 +71,6 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
         );
         if (result != null) {
           imageBytes = result.files.first.bytes;
-          imageName = result.files.first.name;
           setState(() {});
         }
       }
@@ -81,8 +82,9 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
   Future<void> saveProduct() async {
     if (nameCtrl.text.isEmpty ||
         priceCtrl.text.isEmpty ||
-        stockCtrl.text.isEmpty)
+        stockCtrl.text.isEmpty) {
       return;
+    }
 
     setState(() => loading = true);
 
@@ -96,22 +98,31 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
             "name": nameCtrl.text.trim(),
             "price": int.tryParse(priceCtrl.text) ?? 0,
             "stock": int.tryParse(stockCtrl.text) ?? 0,
-            "image": base64Image ?? "",
+            "description": descCtrl.text.trim(),
+            "image": base64Image ?? (widget.initialData['image'] ?? ""),
           });
 
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint("Error update product: $e");
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.dialogBackgroundColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Edit Produk", style: TextStyle(color: Colors.black)),
+      title: Text(
+        "Edit Produk",
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -131,6 +142,14 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: "Stok"),
             ),
+            TextField(
+              controller: descCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: "Deskripsi Produk",
+                alignLabelWithHint: true,
+              ),
+            ),
             const SizedBox(height: 16),
 
             // PREVIEW IMAGE
@@ -143,8 +162,8 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
                   height: 150,
                   fit: BoxFit.cover,
                 ),
-              ),
-            if (imageBytes == null && imageFile != null)
+              )
+            else if (imageFile != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.file(
@@ -157,10 +176,10 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
 
             TextButton.icon(
               onPressed: pickImage,
-              icon: const Icon(Icons.image, color: Colors.blue),
-              label: const Text(
+              icon: Icon(Icons.image, color: colorScheme.primary),
+              label: Text(
                 "Upload Gambar",
-                style: TextStyle(color: Colors.blue),
+                style: TextStyle(color: colorScheme.primary),
               ),
             ),
           ],
@@ -169,16 +188,19 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Batal", style: TextStyle(color: Colors.black54)),
+          child: Text("Batal", style: theme.textTheme.labelLarge),
         ),
         ElevatedButton(
           onPressed: loading ? null : saveProduct,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+          ),
           child: loading
               ? const SizedBox(
                   height: 16,
                   width: 16,
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text("Simpan"),
         ),

@@ -17,6 +17,7 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController priceCtrl = TextEditingController();
   final TextEditingController stockCtrl = TextEditingController();
+  final TextEditingController descCtrl = TextEditingController();
 
   Uint8List? imageBytes;
   File? imageFile;
@@ -54,8 +55,9 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
   Future<void> saveProduct() async {
     if (nameCtrl.text.isEmpty ||
         priceCtrl.text.isEmpty ||
-        stockCtrl.text.isEmpty)
+        stockCtrl.text.isEmpty) {
       return;
+    }
 
     setState(() => loading = true);
 
@@ -66,22 +68,32 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
         "name": nameCtrl.text.trim(),
         "price": int.tryParse(priceCtrl.text) ?? 0,
         "stock": int.tryParse(stockCtrl.text) ?? 0,
+        "description": descCtrl.text.trim(),
         "image": base64Image ?? "",
         "createdAt": Timestamp.now(),
       });
 
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint("Error saving product: $e");
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return AlertDialog(
+      backgroundColor: theme.dialogBackgroundColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Tambah Produk"),
+      title: Text(
+        "Tambah Produk",
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -100,6 +112,14 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
               controller: stockCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: "Stok"),
+            ),
+            TextField(
+              controller: descCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: "Deskripsi Produk",
+                alignLabelWithHint: true,
+              ),
             ),
             const SizedBox(height: 16),
             if (imageBytes != null)
@@ -124,10 +144,10 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
               ),
             TextButton.icon(
               onPressed: pickImage,
-              icon: const Icon(Icons.image, color: Colors.blue),
-              label: const Text(
+              icon: Icon(Icons.image, color: colorScheme.primary),
+              label: Text(
                 "Upload Gambar",
-                style: TextStyle(color: Colors.blue),
+                style: TextStyle(color: colorScheme.primary),
               ),
             ),
           ],
@@ -136,16 +156,19 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Batal", style: TextStyle(color: Colors.black54)),
+          child: Text("Batal", style: theme.textTheme.labelLarge),
         ),
         ElevatedButton(
           onPressed: loading ? null : saveProduct,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+          ),
           child: loading
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text("Simpan"),
         ),

@@ -4,8 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final String adminEmail;
-
-  // Callback untuk tombol edit produk
   final void Function(String docId, Map<String, dynamic> data) onEditProduct;
 
   const AdminDashboardPage({
@@ -41,6 +39,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final productsRef = FirebaseFirestore.instance
         .collection('products')
         .orderBy('createdAt', descending: true);
@@ -90,7 +90,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const SizedBox(height: 12),
 
-          // List Produk Grid
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: productsRef.snapshots(),
@@ -100,17 +99,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Belum ada produk.\nTap tombol + untuk menambah.",
                       textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   );
                 }
 
                 final docs = snapshot.data!.docs;
 
-                // Filter berdasarkan searchQuery (nama produk mengandung teks)
                 final filteredDocs = docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = (data['name'] ?? '').toString().toLowerCase();
@@ -119,9 +118,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Tidak ada produk yang cocok dengan pencarian.",
+                      style: theme.textTheme.bodyMedium,
                     ),
                   );
                 }
@@ -141,9 +141,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     final name = data['name'] ?? 'Tanpa nama';
                     final price = data['price'] ?? 0;
                     final stock = data['stock'] ?? 0;
+                    final desc = data['description'] ?? '';
                     final imageBase64 = data['image'] as String?;
 
                     return Card(
+                      color: theme.cardColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -151,7 +153,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Gambar Produk
                           if (imageBase64 != null && imageBase64.isNotEmpty)
                             ClipRRect(
                               borderRadius: const BorderRadius.vertical(
@@ -171,19 +172,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               width: double.infinity,
                               height: 100,
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
+                                color: colorScheme.onSurface.withOpacity(0.05),
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(12),
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.image,
                                 size: 50,
-                                color: Colors.grey,
+                                color: colorScheme.onSurface.withOpacity(0.4),
                               ),
                             ),
 
-                          // Info Produk
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
@@ -191,41 +191,57 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               children: [
                                 Text(
                                   name,
-                                  style: const TextStyle(
+                                  style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   "Rp $price",
-                                  style: const TextStyle(color: Colors.black54),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.textTheme.bodySmall?.color
+                                        ?.withOpacity(0.9),
+                                  ),
                                 ),
                                 Text(
                                   "Stok: $stock",
-                                  style: const TextStyle(color: Colors.black54),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.textTheme.bodySmall?.color
+                                        ?.withOpacity(0.7),
+                                  ),
                                 ),
+                                if (desc.toString().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    desc,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.textTheme.bodySmall?.color
+                                          ?.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
 
-                          // Tombol Aksi: Edit & Hapus
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.edit,
-                                  color: Colors.blue,
+                                  color: colorScheme.primary,
                                 ),
                                 onPressed: () =>
                                     widget.onEditProduct(doc.id, data),
                               ),
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.delete,
-                                  color: Colors.red,
+                                  color: colorScheme.error,
                                 ),
                                 onPressed: () async {
                                   await FirebaseFirestore.instance
