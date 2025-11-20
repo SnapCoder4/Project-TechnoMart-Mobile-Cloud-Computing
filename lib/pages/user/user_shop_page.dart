@@ -14,10 +14,25 @@ class UserShopPage extends StatefulWidget {
 class _UserShopPageState extends State<UserShopPage> {
   String userName = "User";
 
+  final TextEditingController _searchC = TextEditingController();
+  String _searchQuery = "";
+
   @override
   void initState() {
     super.initState();
     _loadUserName();
+
+    _searchC.addListener(() {
+      setState(() {
+        _searchQuery = _searchC.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchC.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserName() async {
@@ -45,9 +60,8 @@ class _UserShopPageState extends State<UserShopPage> {
         .collection('products')
         .orderBy('createdAt', descending: true);
 
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-    final colorScheme = theme.colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final currentUser = FirebaseAuth.instance.currentUser;
     final userId = currentUser?.uid;
 
@@ -75,6 +89,24 @@ class _UserShopPageState extends State<UserShopPage> {
               ),
             ),
             const SizedBox(height: 8),
+
+            // 🔍 SEARCH BAR USER
+            TextField(
+              controller: _searchC,
+              decoration: InputDecoration(
+                hintText: "Cari produk...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: productsRef.snapshots(),
@@ -92,24 +124,27 @@ class _UserShopPageState extends State<UserShopPage> {
                     );
                   }
 
-                  // FILTER: hanya produk dengan stok > 0 yang ditampilkan
-                  final docs = snapshot.data!.docs.where((doc) {
+                  final docs = snapshot.data!.docs;
+
+                  // 🔍 Filter berdasarkan search (nama mengandung query)
+                  final filteredDocs = docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    final stock = (data['stock'] ?? 0) as int;
-                    return stock > 0;
+                    final name = (data['name'] ?? '').toString().toLowerCase();
+                    if (_searchQuery.isEmpty) return true;
+                    return name.contains(_searchQuery);
                   }).toList();
 
-                  if (docs.isEmpty) {
+                  if (filteredDocs.isEmpty) {
                     return Center(
                       child: Text(
-                        "Semua produk sedang habis stok.",
+                        "Tidak ada produk yang cocok dengan pencarian.",
                         style: textTheme.bodySmall,
                       ),
                     );
                   }
 
                   return GridView.builder(
-                    itemCount: docs.length,
+                    itemCount: filteredDocs.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
@@ -118,16 +153,12 @@ class _UserShopPageState extends State<UserShopPage> {
                           mainAxisSpacing: 12,
                         ),
                     itemBuilder: (context, index) {
-                      final doc = docs[index];
+                      final doc = filteredDocs[index];
                       final data = doc.data() as Map<String, dynamic>;
-
                       final name = data['name'] ?? 'Tanpa nama';
                       final price = data['price'] ?? 0;
                       final imageBase64 = data['image'] as String?;
                       final productId = doc.id;
-
-                      // stok dari Firestore
-                      final int stock = (data['stock'] ?? 0) as int;
 
                       return Card(
                         shape: RoundedRectangleBorder(
@@ -206,14 +237,6 @@ class _UserShopPageState extends State<UserShopPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    "Stok: $stock",
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: textTheme.bodySmall?.color
-                                          ?.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: ElevatedButton(
@@ -221,84 +244,48 @@ class _UserShopPageState extends State<UserShopPage> {
                                         backgroundColor: colorScheme.primary,
                                         foregroundColor: colorScheme.onPrimary,
                                       ),
-                                      // kalau user belum login, tombol disable
                                       onPressed: userId == null
                                           ? null
                                           : () async {
-                                              // kalau entah bagaimana stok = 0, jangan biarkan beli
-                                              if (stock <= 0) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      "Stok barang habis",
-                                                    ),
-                                                  ),
-                                                );
-                                                return;
-                                              }
-
                                               int selectedQty = 1;
                                               await showDialog(
                                                 context: context,
                                                 builder: (_) => AlertDialog(
                                                   title: Text("Jumlah $name"),
                                                   content: StatefulBuilder(
-                                                    builder: (context, setStateQty) {
-                                                      return Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
+                                                    builder: (context, setStateDialog) {
+                                                      return Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
                                                         children: [
-                                                          Text(
-                                                            "Maksimal: $stock",
-                                                            style: textTheme
-                                                                .bodySmall,
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              if (selectedQty >
+                                                                  1) {
+                                                                setStateDialog(
+                                                                  () {
+                                                                    selectedQty--;
+                                                                  },
+                                                                );
+                                                              }
+                                                            },
+                                                            icon: const Icon(
+                                                              Icons.remove,
+                                                            ),
                                                           ),
-                                                          const SizedBox(
-                                                            height: 8,
-                                                          ),
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              IconButton(
-                                                                onPressed: () {
-                                                                  if (selectedQty >
-                                                                      1) {
-                                                                    setStateQty(
-                                                                      () {
-                                                                        selectedQty--;
-                                                                      },
-                                                                    );
-                                                                  }
+                                                          Text("$selectedQty"),
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              setStateDialog(
+                                                                () {
+                                                                  selectedQty++;
                                                                 },
-                                                                icon: const Icon(
-                                                                  Icons.remove,
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                "$selectedQty",
-                                                              ),
-                                                              IconButton(
-                                                                onPressed: () {
-                                                                  // batas di level UI: tidak bisa lebih dari stok
-                                                                  if (selectedQty <
-                                                                      stock) {
-                                                                    setStateQty(
-                                                                      () {
-                                                                        selectedQty++;
-                                                                      },
-                                                                    );
-                                                                  }
-                                                                },
-                                                                icon:
-                                                                    const Icon(
-                                                                      Icons.add,
-                                                                    ),
-                                                              ),
-                                                            ],
+                                                              );
+                                                            },
+                                                            icon: const Icon(
+                                                              Icons.add,
+                                                            ),
                                                           ),
                                                         ],
                                                       );
@@ -338,34 +325,15 @@ class _UserShopPageState extends State<UserShopPage> {
                                                   final cartDoc = await cartRef
                                                       .get();
 
-                                                  int currentQty = 0;
                                                   if (cartDoc.exists) {
-                                                    currentQty =
+                                                    final currentQty =
                                                         (cartDoc['quantity'] ??
-                                                                0)
-                                                            as int;
-                                                  }
-
-                                                  // CEK: total quantity di cart
-                                                  if (currentQty + qty >
-                                                      stock) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          "Maksimal stok $stock.\n"
-                                                          "Di keranjang sudah ada $currentQty.",
-                                                        ),
-                                                      ),
-                                                    );
-                                                    return;
-                                                  }
-
-                                                  if (cartDoc.exists) {
+                                                                1)
+                                                            as num;
                                                     await cartRef.update({
                                                       'quantity':
-                                                          currentQty + qty,
+                                                          currentQty.toInt() +
+                                                          qty,
                                                     });
                                                   } else {
                                                     await cartRef.set({

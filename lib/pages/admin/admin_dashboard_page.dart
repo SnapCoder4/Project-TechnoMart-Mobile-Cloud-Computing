@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AdminDashboardPage extends StatelessWidget {
+class AdminDashboardPage extends StatefulWidget {
   final String adminEmail;
+
+  // Callback untuk tombol edit produk
   final void Function(String docId, Map<String, dynamic> data) onEditProduct;
 
   const AdminDashboardPage({
@@ -13,13 +15,35 @@ class AdminDashboardPage extends StatelessWidget {
   });
 
   @override
+  State<AdminDashboardPage> createState() => _AdminDashboardPageState();
+}
+
+class _AdminDashboardPageState extends State<AdminDashboardPage> {
+  final TextEditingController _searchC = TextEditingController();
+  String _searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _searchC.addListener(() {
+      setState(() {
+        _searchQuery = _searchC.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchC.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final productsRef = FirebaseFirestore.instance
         .collection('products')
         .orderBy('createdAt', descending: true);
-
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -35,9 +59,9 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            adminEmail,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+            widget.adminEmail,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 16),
@@ -49,6 +73,24 @@ class AdminDashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
+          // 🔍 SEARCH BAR
+          TextField(
+            controller: _searchC,
+            decoration: InputDecoration(
+              hintText: "Cari produk berdasarkan nama...",
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // List Produk Grid
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: productsRef.snapshots(),
@@ -58,20 +100,31 @@ class AdminDashboardPage extends StatelessWidget {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Text(
                       "Belum ada produk.\nTap tombol + untuk menambah.",
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                          0.7,
-                        ),
-                      ),
                     ),
                   );
                 }
 
                 final docs = snapshot.data!.docs;
+
+                // 🔍 Filter berdasarkan searchQuery (nama produk mengandung teks)
+                final filteredDocs = docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  if (_searchQuery.isEmpty) return true;
+                  return name.contains(_searchQuery);
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Tidak ada produk yang cocok dengan pencarian.",
+                    ),
+                  );
+                }
 
                 return GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -80,9 +133,9 @@ class AdminDashboardPage extends StatelessWidget {
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
-                  itemCount: docs.length,
+                  itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
-                    final doc = docs[index];
+                    final doc = filteredDocs[index];
                     final data = doc.data() as Map<String, dynamic>;
 
                     final name = data['name'] ?? 'Tanpa nama';
@@ -91,7 +144,6 @@ class AdminDashboardPage extends StatelessWidget {
                     final imageBase64 = data['image'] as String?;
 
                     return Card(
-                      color: theme.cardColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -119,15 +171,15 @@ class AdminDashboardPage extends StatelessWidget {
                               width: double.infinity,
                               height: 100,
                               decoration: BoxDecoration(
-                                color: colorScheme.surfaceVariant,
+                                color: Colors.grey[200],
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(12),
                                 ),
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.image,
                                 size: 50,
-                                color: theme.iconTheme.color?.withOpacity(0.6),
+                                color: Colors.grey,
                               ),
                             ),
 
@@ -139,25 +191,20 @@ class AdminDashboardPage extends StatelessWidget {
                               children: [
                                 Text(
                                   name,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   "Rp $price",
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.8),
-                                  ),
+                                  style: const TextStyle(color: Colors.black54),
                                 ),
                                 Text(
                                   "Stok: $stock",
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.8),
-                                  ),
+                                  style: const TextStyle(color: Colors.black54),
                                 ),
                               ],
                             ),
@@ -168,16 +215,17 @@ class AdminDashboardPage extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               IconButton(
-                                icon: Icon(
+                                icon: const Icon(
                                   Icons.edit,
-                                  color: colorScheme.primary,
+                                  color: Colors.blue,
                                 ),
-                                onPressed: () => onEditProduct(doc.id, data),
+                                onPressed: () =>
+                                    widget.onEditProduct(doc.id, data),
                               ),
                               IconButton(
-                                icon: Icon(
+                                icon: const Icon(
                                   Icons.delete,
-                                  color: colorScheme.error,
+                                  color: Colors.red,
                                 ),
                                 onPressed: () async {
                                   await FirebaseFirestore.instance

@@ -21,18 +21,23 @@ class _AdminChangePasswordPageState extends State<AdminChangePasswordPage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
+      // Re-authenticate user
       final cred = EmailAuthProvider.credential(
         email: user.email!,
         password: oldC.text.trim(),
       );
 
       await user.reauthenticateWithCredential(cred);
+
+      // Update password
       await user.updatePassword(newC.text.trim());
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Password berhasil diubah")));
+
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(
@@ -45,8 +50,6 @@ class _AdminChangePasswordPageState extends State<AdminChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text("Ubah Password")),
       body: Padding(
@@ -59,6 +62,7 @@ class _AdminChangePasswordPageState extends State<AdminChangePasswordPage> {
               decoration: const InputDecoration(labelText: "Password Lama"),
             ),
             const SizedBox(height: 16),
+
             TextField(
               controller: newC,
               obscureText: true,
