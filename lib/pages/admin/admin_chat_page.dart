@@ -71,7 +71,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
 
       _msgCtrl.clear();
 
-      // scroll ke bawah setelah kirim
       await Future.delayed(const Duration(milliseconds: 150));
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
@@ -131,12 +130,12 @@ class _AdminChatPageState extends State<AdminChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
         title: Row(
           children: [
             CircleAvatar(
@@ -151,21 +150,25 @@ class _AdminChatPageState extends State<AdminChatPage> {
               children: [
                 Text(
                   widget.userName,
-                  style: const TextStyle(
-                    color: Colors.black,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Text(
+                Text(
                   "Customer Technomart",
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                  ),
                 ),
               ],
             ),
           ],
         ),
       ),
-      backgroundColor: const Color(0xFFE5E7EB),
+
+      // bgcolor ikut theme (gelap/terang)
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       body: Column(
         children: [
           Expanded(
@@ -180,17 +183,20 @@ class _AdminChatPageState extends State<AdminChatPage> {
 
                 final docs = snap.data?.docs ?? [];
 
-                // cek apakah perlu auto-reply dari bot
                 if (docs.isNotEmpty) {
                   _maybeSendFirstBotReply(docs);
                 }
 
                 if (docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Belum ada percakapan.\nSilakan mulai chat dengan user.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.black54),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                          0.7,
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -225,8 +231,8 @@ class _AdminChatPageState extends State<AdminChatPage> {
                         ),
                         decoration: BoxDecoration(
                           color: isFromStore
-                              ? const Color(0xFF22C55E) // hijau untuk admin/bot
-                              : Colors.white, // putih untuk user
+                              ? const Color(0xFF22C55E) // hijau tetap
+                              : theme.cardColor, // ikut cardColor (dark/light)
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
@@ -248,7 +254,9 @@ class _AdminChatPageState extends State<AdminChatPage> {
                         child: Text(
                           text,
                           style: TextStyle(
-                            color: isFromStore ? Colors.white : Colors.black87,
+                            color: isFromStore
+                                ? Colors.white
+                                : theme.textTheme.bodyMedium?.color,
                             fontSize: 14,
                             height: 1.4,
                           ),
@@ -263,7 +271,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
 
           // input pesan
           Container(
-            color: Colors.white,
+            color: colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: SafeArea(
               top: false,
@@ -274,10 +282,16 @@ class _AdminChatPageState extends State<AdminChatPage> {
                       controller: _msgCtrl,
                       minLines: 1,
                       maxLines: 4,
+                      style: theme.textTheme.bodyMedium,
                       decoration: InputDecoration(
                         hintText: "Tulis balasan untuk ${widget.userName}...",
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                            0.6,
+                          ),
+                        ),
                         filled: true,
-                        fillColor: const Color(0xFFF3F4F6),
+                        fillColor: colorScheme.surfaceVariant,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -297,10 +311,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
-                            Icons.send_rounded,
-                            color: Color(0xFF2563EB),
-                          ),
+                        : Icon(Icons.send_rounded, color: colorScheme.primary),
                     onPressed: _sending ? null : _sendMessage,
                   ),
                 ],

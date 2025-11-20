@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserChatPage extends StatefulWidget {
   const UserChatPage({super.key});
@@ -16,12 +16,10 @@ class _UserChatPageState extends State<UserChatPage> {
   String get _userId => FirebaseAuth.instance.currentUser!.uid;
   String get _userEmail => FirebaseAuth.instance.currentUser!.email ?? '';
 
-  /// Pastikan dokumen header chats/{userId} sudah ada
   Future<void> _ensureChatHeader() async {
     final chatDocRef = FirebaseFirestore.instance
         .collection('chats')
         .doc(_userId);
-
     final snap = await chatDocRef.get();
     if (!snap.exists) {
       String displayName = _userEmail;
@@ -55,30 +53,25 @@ class _UserChatPageState extends State<UserChatPage> {
     final chatDocRef = firestore.collection('chats').doc(_userId);
     final messagesRef = chatDocRef.collection('messages');
 
-    // 0) Pastikan header ada
     await _ensureChatHeader();
 
-    // Cek apakah ini pesan pertama di chat
     final existingMessages = await messagesRef.limit(1).get();
     final bool isFirstMessage = existingMessages.docs.isEmpty;
 
-    // 1) Simpan pesan user
     await messagesRef.add({
       'text': text,
       'senderId': _userId,
-      'senderRole': 'user', // user
+      'senderRole': 'user',
       'createdAt': FieldValue.serverTimestamp(),
       'isRead': false,
     });
 
-    // 2) Update header chat (pakai pesan user dulu)
     await chatDocRef.set({
       'lastMessage': text,
       'lastSenderRole': 'user',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // 3) Kalau ini pesan pertama, kirim auto-reply dari "bot"
     if (isFirstMessage) {
       const botText =
           "Halo! 👋\n\nTerima kasih sudah menghubungi Technomart.\n"
@@ -89,12 +82,11 @@ class _UserChatPageState extends State<UserChatPage> {
       await messagesRef.add({
         'text': botText,
         'senderId': 'system',
-        'senderRole': 'bot', // <== penting, supaya dianggap lawan bicara
+        'senderRole': 'bot',
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
       });
 
-      // Header di-update pakai pesan bot (biar paling atas di list admin)
       await chatDocRef.set({
         'lastMessage': botText,
         'lastSenderRole': 'bot',
@@ -102,7 +94,6 @@ class _UserChatPageState extends State<UserChatPage> {
       }, SetOptions(merge: true));
     }
 
-    // 4) Scroll ke paling bawah
     await Future.delayed(const Duration(milliseconds: 150));
     if (_scrollCtrl.hasClients) {
       _scrollCtrl.animateTo(
@@ -113,7 +104,6 @@ class _UserChatPageState extends State<UserChatPage> {
     }
   }
 
-  /// Tandai pesan admin/bot sebagai sudah dibaca di sisi user
   Future<void> _markAdminMessagesAsRead(
     QuerySnapshot<Map<String, dynamic>> snap,
   ) async {
@@ -143,6 +133,8 @@ class _UserChatPageState extends State<UserChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     final messageStream = FirebaseFirestore.instance
         .collection('chats')
         .doc(_userId)
@@ -156,25 +148,24 @@ class _UserChatPageState extends State<UserChatPage> {
 
     return Column(
       children: [
-        // Header ala WA
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: const Color(0xFF075E54),
+          color: theme.colorScheme.primary,
           child: Row(
-            children: const [
+            children: [
               CircleAvatar(
-                backgroundColor: Colors.white,
+                backgroundColor: theme.colorScheme.onPrimary,
                 child: Icon(
                   Icons.support_agent_rounded,
-                  color: Color(0xFF075E54),
+                  color: theme.colorScheme.primary,
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Text(
                 "Chat Admin Technomart",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -184,7 +175,7 @@ class _UserChatPageState extends State<UserChatPage> {
 
         Expanded(
           child: Container(
-            color: const Color(0xFFE5DDD5),
+            color: theme.scaffoldBackgroundColor,
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: messageStream,
               builder: (context, snapshot) {
@@ -193,10 +184,10 @@ class _UserChatPageState extends State<UserChatPage> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Mulai chat dengan admin Technomart 👋",
-                      style: TextStyle(color: Colors.black54),
+                      style: TextStyle(color: theme.textTheme.bodySmall?.color),
                     ),
                   );
                 }
@@ -225,8 +216,10 @@ class _UserChatPageState extends State<UserChatPage> {
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start;
                     final Color bubbleColor = isUser
-                        ? const Color(0xFFDCF8C6) // hijau muda
-                        : Colors.white; // admin/bot putih
+                        ? theme.primaryColor.withOpacity(0.2)
+                        : theme.cardColor;
+                    final Color textColor =
+                        theme.textTheme.bodyLarge?.color ?? Colors.black;
 
                     return Align(
                       alignment: align,
@@ -245,10 +238,7 @@ class _UserChatPageState extends State<UserChatPage> {
                             ),
                             child: Text(
                               text,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 14,
-                              ),
+                              style: TextStyle(color: textColor, fontSize: 14),
                             ),
                           ),
                         ],
@@ -261,9 +251,8 @@ class _UserChatPageState extends State<UserChatPage> {
           ),
         ),
 
-        // input bar
         Container(
-          color: const Color(0xFFF5F5F5),
+          color: theme.scaffoldBackgroundColor,
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
           child: Row(
             children: [
@@ -272,8 +261,11 @@ class _UserChatPageState extends State<UserChatPage> {
                   controller: _msgCtrl,
                   decoration: InputDecoration(
                     hintText: "Ketik pesan...",
+                    hintStyle: TextStyle(
+                      color: theme.textTheme.bodySmall?.color,
+                    ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: theme.cardColor,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 10,
@@ -283,6 +275,7 @@ class _UserChatPageState extends State<UserChatPage> {
                       borderSide: BorderSide.none,
                     ),
                   ),
+                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                   onSubmitted: (_) => _sendMessage(),
                 ),
               ),
@@ -291,13 +284,13 @@ class _UserChatPageState extends State<UserChatPage> {
                 onTap: _sendMessage,
                 child: Container(
                   padding: const EdgeInsets.all(11),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF25D366),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.send_rounded,
-                    color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                     size: 20,
                   ),
                 ),

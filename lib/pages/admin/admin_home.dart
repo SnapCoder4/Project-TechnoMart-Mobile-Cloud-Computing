@@ -27,6 +27,9 @@ class _AdminHomeState extends State<AdminHome> {
     final auth = Provider.of<AuthService>(context, listen: false);
     final email = auth.user?.email ?? "Unknown";
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final pages = [
       AdminDashboardPage(
         adminEmail: email,
@@ -39,41 +42,39 @@ class _AdminHomeState extends State<AdminHome> {
         },
       ),
 
-      // CHAT NOW USE LIST OF USERS
       const AdminChatListPage(),
 
       const AdminSettingsPage(),
     ];
 
     return Scaffold(
+      // Pakai warna dari theme, jangan hardcode
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        title: const Text(
+        title: Text(
           "Technomart Admin",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          style:
+              theme.appBarTheme.titleTextStyle ??
+              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             tooltip: "Logout",
-            icon: const Icon(Icons.logout_rounded, color: Colors.black),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => auth.logout(),
           ),
         ],
       ),
 
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: pages[_currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF2563EB),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
+
+        // ❌ JANGAN set backgroundColor/selectedColor hardcode
+        // biar ikut BottomNavigationBarTheme dari main.dart
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
@@ -90,7 +91,6 @@ class _AdminHomeState extends State<AdminHome> {
         ],
       ),
 
-      // FAB khusus untuk halaman Home (index 0)
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
@@ -101,8 +101,8 @@ class _AdminHomeState extends State<AdminHome> {
               },
               icon: const Icon(Icons.add_rounded),
               label: const Text("Tambah Produk"),
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
             )
           : null,
     );

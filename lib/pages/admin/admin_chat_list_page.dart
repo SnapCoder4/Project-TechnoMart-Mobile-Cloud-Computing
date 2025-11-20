@@ -12,8 +12,10 @@ class AdminChatListPage extends StatelessWidget {
         .collection('users')
         .snapshots();
 
+    final theme = Theme.of(context);
+
     return Container(
-      color: Colors.white,
+      color: theme.scaffoldBackgroundColor,
       child: StreamBuilder<QuerySnapshot>(
         stream: usersStream,
         builder: (context, snap) {
@@ -22,10 +24,12 @@ class AdminChatListPage extends StatelessWidget {
           }
 
           if (!snap.hasData || snap.data!.docs.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 "Belum ada user yang terdaftar / chat.",
-                style: TextStyle(color: Colors.black54),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
               ),
             );
           }
@@ -45,12 +49,17 @@ class AdminChatListPage extends StatelessWidget {
                 leading: CircleAvatar(
                   child: Text((name.isNotEmpty ? name[0] : "?").toUpperCase()),
                 ),
-                title: Text(name, style: const TextStyle(color: Colors.black)),
+                title: Text(name, style: theme.textTheme.bodyLarge),
                 subtitle: Text(
                   email,
-                  style: const TextStyle(color: Colors.black54),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                  ),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.iconTheme.color?.withOpacity(0.7),
+                ),
                 onTap: () {
                   Navigator.push(
                     context,

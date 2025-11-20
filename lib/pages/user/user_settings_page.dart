@@ -1,146 +1,136 @@
+import 'user_edit_profile_page.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'user_change_password_page.dart';
+import '../providers/theme_provider.dart';
+import 'user_transaction_history_page.dart';
 
-class UserSettingsPage extends StatefulWidget {
+class UserSettingsPage extends StatelessWidget {
   final String userEmail;
   const UserSettingsPage({super.key, required this.userEmail});
 
   @override
-  State<UserSettingsPage> createState() => _UserSettingsPageState();
-}
-
-class _UserSettingsPageState extends State<UserSettingsPage> {
-  final nameC = TextEditingController();
-  final passC = TextEditingController();
-  bool loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    if (doc.exists) {
-      final data = doc.data()!;
-      nameC.text = data['name'] ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    nameC.dispose();
-    passC.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveChanges() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    if (nameC.text.trim().isEmpty && passC.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tidak ada perubahan yang disimpan.")),
-      );
-      return;
-    }
-
-    setState(() => loading = true);
-
-    try {
-      if (nameC.text.trim().isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({'name': nameC.text.trim()});
-      }
-
-      if (passC.text.trim().isNotEmpty) {
-        await user.updatePassword(passC.text.trim());
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Perubahan profil berhasil disimpan.")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal menyimpan perubahan: $e")));
-    } finally {
-      setState(() => loading = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: ListView(
-        children: [
-          const SizedBox(height: 8),
-          const Text(
-            "Pengaturan Akun",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            widget.userEmail,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: nameC,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: "Nama profil",
-              labelStyle: TextStyle(color: Colors.grey),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        elevation: 1,
+        iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
+        title: Text(
+          "Pengaturan",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ListView(
+          children: [
+            Text(
+              userEmail,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+                fontSize: 14,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: passC,
-            obscureText: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: "Password baru",
-              labelStyle: TextStyle(color: Colors.grey),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
+            const SizedBox(height: 20),
+
+            ListTile(
+              leading: Icon(
+                Icons.person,
+                color: Theme.of(context).iconTheme.color,
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          loading
-              ? const Center(child: CircularProgressIndicator())
-              : ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF22C55E),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.save_rounded),
-                  label: const Text("Simpan Perubahan"),
-                  onPressed: _saveChanges,
+              title: Text(
+                "Edit Profil",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
-        ],
+              ),
+              trailing: Icon(
+                Icons.arrow_forward_ios,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                );
+              },
+            ),
+            const Divider(color: Colors.black12),
+
+            ListTile(
+              leading: Icon(
+                Icons.lock,
+                color: Theme.of(context).iconTheme.color,
+              ),
+              title: Text(
+                "Ubah Password",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              trailing: Icon(
+                Icons.arrow_forward_ios,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
+                );
+              },
+            ),
+            const Divider(color: Colors.black12),
+
+            ListTile(
+              leading: Icon(
+                Icons.history,
+                color: Theme.of(context).iconTheme.color,
+              ),
+              title: Text(
+                "Riwayat Transaksi",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              trailing: Icon(
+                Icons.arrow_forward_ios,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const UserTransactionHistoryPage(),
+                  ),
+                );
+              },
+            ),
+            const Divider(color: Colors.black12),
+
+            SwitchListTile(
+              value: themeProvider.isDarkMode,
+              activeThumbColor: Colors.blue,
+              activeTrackColor: Colors.blue.withAlpha((0.5 * 255).toInt()),
+              secondary: Icon(
+                themeProvider.isDarkMode
+                    ? Icons.nightlight_round
+                    : Icons.wb_sunny,
+                color: Theme.of(context).iconTheme.color,
+              ),
+              title: Text(
+                "Ubah Tema",
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              onChanged: (val) => themeProvider.toggleTheme(val),
+            ),
+          ],
+        ),
       ),
     );
   }
