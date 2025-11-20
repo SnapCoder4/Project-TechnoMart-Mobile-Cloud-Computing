@@ -73,7 +73,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const SizedBox(height: 8),
 
-          // 🔍 SEARCH BAR
+          // SEARCH BAR
           TextField(
             controller: _searchC,
             decoration: InputDecoration(
@@ -110,7 +110,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
                 final docs = snapshot.data!.docs;
 
-                // 🔍 Filter berdasarkan searchQuery (nama produk mengandung teks)
+                // Filter berdasarkan searchQuery (nama produk mengandung teks)
                 final filteredDocs = docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = (data['name'] ?? '').toString().toLowerCase();

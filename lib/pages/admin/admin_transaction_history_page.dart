@@ -46,7 +46,7 @@ class AdminTransactionHistoryPage extends StatelessWidget {
               final totalPrice = data['totalPrice'] ?? 0;
               final status = data['status'] ?? "Pending";
 
-              // Ambil List items dengan aman
+              // Ambil List items
               final List items = (data['items'] is Iterable)
                   ? data['items']
                   : [];

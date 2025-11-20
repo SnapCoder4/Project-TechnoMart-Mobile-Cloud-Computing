@@ -88,6 +88,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
     }
   }
 
+  // Kirim pesan bot kalau chat baru berisi 1 pesan dari user
   Future<void> _maybeSendFirstBotReply(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) async {
@@ -165,7 +166,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
         ),
       ),
 
-      // bgcolor ikut theme (gelap/terang)
+      // background color theme
       backgroundColor: theme.scaffoldBackgroundColor,
 
       body: Column(
@@ -230,8 +231,8 @@ class _AdminChatPageState extends State<AdminChatPage> {
                         ),
                         decoration: BoxDecoration(
                           color: isFromStore
-                              ? const Color(0xFF22C55E) // hijau tetap
-                              : theme.cardColor, // ikut cardColor (dark/light)
+                              ? const Color(0xFF22C55E)
+                              : theme.cardColor,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
