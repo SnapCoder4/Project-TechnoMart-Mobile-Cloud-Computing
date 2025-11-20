@@ -48,7 +48,6 @@ class _AdminHomeState extends State<AdminHome> {
     ];
 
     return Scaffold(
-      // Pakai warna dari theme, jangan hardcode
       appBar: AppBar(
         title: Text(
           "Technomart Admin",
@@ -73,8 +72,6 @@ class _AdminHomeState extends State<AdminHome> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
 
-        // ❌ JANGAN set backgroundColor/selectedColor hardcode
-        // biar ikut BottomNavigationBarTheme dari main.dart
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),

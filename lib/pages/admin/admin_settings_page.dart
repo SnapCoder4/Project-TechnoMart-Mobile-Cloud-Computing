@@ -24,9 +24,7 @@ class AdminSettingsPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // =======================
           // Ubah Password
-          // =======================
           ListTile(
             leading: Icon(Icons.lock, color: theme.iconTheme.color),
             title: Text("Ubah Password", style: theme.textTheme.bodyLarge),
@@ -45,9 +43,7 @@ class AdminSettingsPage extends StatelessWidget {
           ),
           Divider(color: theme.dividerColor),
 
-          // =======================
           // Riwayat Transaksi
-          // =======================
           ListTile(
             leading: Icon(Icons.history, color: theme.iconTheme.color),
             title: Text("Riwayat Transaksi", style: theme.textTheme.bodyLarge),
@@ -68,9 +64,7 @@ class AdminSettingsPage extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // =======================
           // Mode Gelap / Terang
-          // =======================
           SwitchListTile(
             value: themeProvider.isDarkMode,
             activeThumbColor: Colors.blue,

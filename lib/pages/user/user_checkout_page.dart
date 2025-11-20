@@ -16,11 +16,10 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
   String paymentMethod = "Cash";
   final int shippingFee = 8000;
 
-  bool isLoading = true; // loading data user + cart
-  bool isProcessing = false; // loading saat tekan checkout
+  bool isLoading = true;
+  bool isProcessing = false;
 
   // item keranjang:
-  // { productId, name, image, price, quantity }
   List<Map<String, dynamic>> cartItems = [];
 
   @override
@@ -54,7 +53,6 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
 
       if (!mounted) return;
 
-      // 🔴 FIX DI SINI: baca address dengan aman
       final userData = userDoc.data();
       String? addr;
       if (userData != null && userData.containsKey('address')) {
@@ -108,7 +106,7 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
       final firestore = FirebaseFirestore.instance;
       final orderRef = firestore.collection('orders').doc();
 
-      // status SELALU Paid
+      // status Paid
       const status = "Paid";
 
       await orderRef.set({

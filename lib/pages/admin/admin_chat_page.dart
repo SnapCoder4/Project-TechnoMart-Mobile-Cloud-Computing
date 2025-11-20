@@ -88,7 +88,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
     }
   }
 
-  /// Kirim pesan bot kalau chat baru berisi 1 pesan dari user
   Future<void> _maybeSendFirstBotReply(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) async {

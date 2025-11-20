@@ -90,7 +90,7 @@ class _UserShopPageState extends State<UserShopPage> {
             ),
             const SizedBox(height: 8),
 
-            // 🔍 SEARCH BAR USER
+            // SEARCH BAR USER
             TextField(
               controller: _searchC,
               decoration: InputDecoration(
@@ -126,7 +126,7 @@ class _UserShopPageState extends State<UserShopPage> {
 
                   final docs = snapshot.data!.docs;
 
-                  // 🔍 Filter berdasarkan search (nama mengandung query)
+                  // Filter berdasarkan searchQuery (nama mengandung query)
                   final filteredDocs = docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     final name = (data['name'] ?? '').toString().toLowerCase();
