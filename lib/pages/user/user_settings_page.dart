@@ -12,16 +12,24 @@ class UserSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
+    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
+    final dividerColor = isDark ? Colors.white10 : Colors.black12;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: cardColor,
         elevation: 1,
-        iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
+        iconTheme: IconThemeData(color: iconColor),
         title: Text(
           "Pengaturan",
-          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
       ),
       body: Padding(
@@ -30,27 +38,21 @@ class UserSettingsPage extends StatelessWidget {
           children: [
             Text(
               userEmail,
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodySmall?.color,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: subTextColor, fontSize: 14),
             ),
             const SizedBox(height: 20),
 
             ListTile(
-              leading: Icon(
-                Icons.person,
-                color: Theme.of(context).iconTheme.color,
-              ),
-              title: Text(
-                "Edit Profil",
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
+              leading: Icon(Icons.person, color: iconColor),
+              title: Text("Edit Profil", style: TextStyle(color: textColor)),
               trailing: Icon(
                 Icons.arrow_forward_ios,
-                color: Theme.of(context).textTheme.bodySmall?.color,
+                color: subTextColor,
+                size: 16,
+              ),
+              tileColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
               onTap: () {
                 Navigator.push(
@@ -59,22 +61,19 @@ class UserSettingsPage extends StatelessWidget {
                 );
               },
             ),
-            const Divider(color: Colors.black12),
+            Divider(color: dividerColor, height: 20),
 
             ListTile(
-              leading: Icon(
-                Icons.lock,
-                color: Theme.of(context).iconTheme.color,
-              ),
-              title: Text(
-                "Ubah Password",
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
+              leading: Icon(Icons.lock, color: iconColor),
+              title: Text("Ubah Password", style: TextStyle(color: textColor)),
               trailing: Icon(
                 Icons.arrow_forward_ios,
-                color: Theme.of(context).textTheme.bodySmall?.color,
+                color: subTextColor,
+                size: 16,
+              ),
+              tileColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
               onTap: () {
                 Navigator.push(
@@ -83,22 +82,22 @@ class UserSettingsPage extends StatelessWidget {
                 );
               },
             ),
-            const Divider(color: Colors.black12),
+            Divider(color: dividerColor, height: 20),
 
             ListTile(
-              leading: Icon(
-                Icons.history,
-                color: Theme.of(context).iconTheme.color,
-              ),
+              leading: Icon(Icons.history, color: iconColor),
               title: Text(
                 "Riwayat Transaksi",
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
+                style: TextStyle(color: textColor),
               ),
               trailing: Icon(
                 Icons.arrow_forward_ios,
-                color: Theme.of(context).textTheme.bodySmall?.color,
+                color: subTextColor,
+                size: 16,
+              ),
+              tileColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
               onTap: () {
                 Navigator.push(
@@ -109,23 +108,23 @@ class UserSettingsPage extends StatelessWidget {
                 );
               },
             ),
-            const Divider(color: Colors.black12),
+            Divider(color: dividerColor, height: 20),
 
             SwitchListTile(
               value: themeProvider.isDarkMode,
-              activeThumbColor: Colors.blue,
-              activeTrackColor: Colors.blue.withAlpha((0.5 * 255).toInt()),
+              activeColor: Colors.blue,
+              inactiveThumbColor: Colors.grey,
+              inactiveTrackColor: Colors.grey.withAlpha(120),
               secondary: Icon(
                 themeProvider.isDarkMode
                     ? Icons.nightlight_round
                     : Icons.wb_sunny,
-                color: Theme.of(context).iconTheme.color,
+                color: iconColor,
               ),
-              title: Text(
-                "Ubah Tema",
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
+              title: Text("Ubah Tema", style: TextStyle(color: textColor)),
+              tileColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
               onChanged: (val) => themeProvider.toggleTheme(val),
             ),

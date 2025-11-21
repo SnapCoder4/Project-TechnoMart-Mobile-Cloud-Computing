@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ChangePasswordPage extends StatefulWidget {
@@ -52,17 +54,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
+    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final buttonColor = isDark ? Colors.grey[800]! : Colors.black;
+    final buttonTextColor = Colors.white;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor,
+        backgroundColor: cardColor,
         elevation: 1,
         iconTheme: theme.iconTheme,
-        title: Text(
-          "Ubah Password",
-          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-        ),
+        title: Text("Ubah Password", style: TextStyle(color: textColor)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -71,7 +78,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             TextField(
               controller: oldPassC,
               obscureText: true,
-              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 labelText: "Password Lama",
                 labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
@@ -89,7 +96,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             TextField(
               controller: newPassC,
               obscureText: true,
-              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 labelText: "Password Baru",
                 labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
@@ -105,15 +112,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             ),
             const SizedBox(height: 20),
             loading
-                ? const CircularProgressIndicator()
+                ? CircularProgressIndicator(color: theme.primaryColor)
                 : ElevatedButton(
                     onPressed: _changePassword,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: buttonColor,
                     ),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text("Ubah Password"),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        "Ubah Password",
+                        style: TextStyle(color: buttonTextColor),
+                      ),
                     ),
                   ),
           ],

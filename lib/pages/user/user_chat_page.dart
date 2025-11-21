@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -46,7 +48,6 @@ class _UserChatPageState extends State<UserChatPage> {
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
-
     _msgCtrl.clear();
 
     final firestore = FirebaseFirestore.instance;
@@ -74,11 +75,7 @@ class _UserChatPageState extends State<UserChatPage> {
 
     if (isFirstMessage) {
       const botText =
-          "Halo! 👋\n\nTerima kasih sudah menghubungi Technomart.\n"
-          "Admin kami sedang online/offline bergantian.\n"
-          "Pesan kamu akan segera dicek ya. "
-          "Kalau mau, tulis dulu detail pesanan atau kendalanya 🙂";
-
+          "Halo! 👋\nTerima kasih sudah menghubungi Technomart. Admin kami akan segera membalas.";
       await messagesRef.add({
         'text': botText,
         'senderId': 'system',
@@ -86,7 +83,6 @@ class _UserChatPageState extends State<UserChatPage> {
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
       });
-
       await chatDocRef.set({
         'lastMessage': botText,
         'lastSenderRole': 'bot',
@@ -103,6 +99,7 @@ class _UserChatPageState extends State<UserChatPage> {
       );
     }
   }
+
   Future<void> _markAdminMessagesAsRead(
     QuerySnapshot<Map<String, dynamic>> snap,
   ) async {
@@ -132,40 +129,46 @@ class _UserChatPageState extends State<UserChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
+    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
 
     final messageStream = FirebaseFirestore.instance
         .collection('chats')
         .doc(_userId)
         .collection('messages')
         .orderBy('createdAt')
-        .withConverter<Map<String, dynamic>>(
-          fromFirestore: (s, _) => s.data() ?? {},
-          toFirestore: (data, _) => data,
-        )
         .snapshots();
 
     return Column(
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: theme.colorScheme.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: cardColor,
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+            ],
+          ),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: theme.colorScheme.onPrimary,
-                child: Icon(
-                  Icons.support_agent_rounded,
-                  color: theme.colorScheme.primary,
-                ),
+                backgroundColor: iconColor,
+                child: Icon(Icons.support_agent_rounded, color: cardColor),
               ),
               const SizedBox(width: 10),
               Text(
                 "Chat Admin Technomart",
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
+                  color: textColor,
+                  fontSize: 16,
                 ),
               ),
             ],
@@ -174,7 +177,7 @@ class _UserChatPageState extends State<UserChatPage> {
 
         Expanded(
           child: Container(
-            color: theme.scaffoldBackgroundColor,
+            color: bgColor,
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: messageStream,
               builder: (context, snapshot) {
@@ -186,7 +189,7 @@ class _UserChatPageState extends State<UserChatPage> {
                   return Center(
                     child: Text(
                       "Mulai chat dengan admin Technomart 👋",
-                      style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                      style: TextStyle(color: subTextColor),
                     ),
                   );
                 }
@@ -198,7 +201,7 @@ class _UserChatPageState extends State<UserChatPage> {
                 return ListView.builder(
                   controller: _scrollCtrl,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
+                    horizontal: 12,
                     vertical: 8,
                   ),
                   itemCount: docs.length,
@@ -215,10 +218,9 @@ class _UserChatPageState extends State<UserChatPage> {
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start;
                     final Color bubbleColor = isUser
-                        ? theme.primaryColor.withOpacity(0.2)
-                        : theme.cardColor;
-                    final Color textColor =
-                        theme.textTheme.bodyLarge?.color ?? Colors.black;
+                        ? cardColor.withOpacity(0.2)
+                        : cardColor;
+                    final Color bubbleTextColor = textColor;
 
                     return Align(
                       alignment: align,
@@ -237,7 +239,10 @@ class _UserChatPageState extends State<UserChatPage> {
                             ),
                             child: Text(
                               text,
-                              style: TextStyle(color: textColor, fontSize: 14),
+                              style: TextStyle(
+                                color: bubbleTextColor,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ],
@@ -251,7 +256,7 @@ class _UserChatPageState extends State<UserChatPage> {
         ),
 
         Container(
-          color: theme.scaffoldBackgroundColor,
+          color: bgColor,
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
           child: Row(
             children: [
@@ -260,11 +265,9 @@ class _UserChatPageState extends State<UserChatPage> {
                   controller: _msgCtrl,
                   decoration: InputDecoration(
                     hintText: "Ketik pesan...",
-                    hintStyle: TextStyle(
-                      color: theme.textTheme.bodySmall?.color,
-                    ),
+                    hintStyle: TextStyle(color: subTextColor),
                     filled: true,
-                    fillColor: theme.cardColor,
+                    fillColor: cardColor,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 10,
@@ -274,7 +277,7 @@ class _UserChatPageState extends State<UserChatPage> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  style: TextStyle(color: textColor),
                   onSubmitted: (_) => _sendMessage(),
                 ),
               ),
@@ -284,14 +287,10 @@ class _UserChatPageState extends State<UserChatPage> {
                 child: Container(
                   padding: const EdgeInsets.all(11),
                   decoration: BoxDecoration(
-                    color: theme.primaryColor,
+                    color: iconColor,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.send_rounded,
-                    color: theme.colorScheme.onPrimary,
-                    size: 20,
-                  ),
+                  child: Icon(Icons.send_rounded, color: cardColor, size: 20),
                 ),
               ),
             ],

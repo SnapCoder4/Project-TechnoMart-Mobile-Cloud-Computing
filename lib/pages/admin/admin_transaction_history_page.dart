@@ -2,11 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class UserTransactionHistoryPage extends StatelessWidget {
-  const UserTransactionHistoryPage({super.key});
+class AdminTransactionHistoryPage extends StatelessWidget {
+  const AdminTransactionHistoryPage({super.key});
 
   Color statusColor(String status) {
     switch (status) {
@@ -23,29 +22,14 @@ class UserTransactionHistoryPage extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
-    final theme = Theme.of(context);
-    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
-    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final bgColor = isDark ? Colors.black : Colors.grey.shade100;
+    final cardColor = isDark ? Colors.grey.shade900 : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.white70 : Colors.black54;
 
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (userId == null) {
-      return Scaffold(
-        backgroundColor: bgColor,
-        body: Center(
-          child: Text(
-            "User tidak ditemukan",
-            style: TextStyle(color: textColor),
-          ),
-        ),
-      );
-    }
-
     final ordersRef = FirebaseFirestore.instance
         .collection('orders')
-        .where('userId', isEqualTo: userId);
+        .orderBy('createdAt', descending: true);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -54,7 +38,7 @@ class UserTransactionHistoryPage extends StatelessWidget {
         elevation: 1,
         iconTheme: IconThemeData(color: textColor),
         title: Text(
-          "Riwayat Transaksi",
+          "Riwayat Transaksi Semua User",
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
       ),
@@ -84,22 +68,24 @@ class UserTransactionHistoryPage extends StatelessWidget {
               final data = docs[index].data() as Map<String, dynamic>;
               final createdAt = data['createdAt'] as Timestamp?;
               final totalPrice = data['totalPrice'] ?? 0;
-              final status = data['status'] ?? 'Pending';
+              final status = data['status'] ?? "Pending";
               final items = List<Map<String, dynamic>>.from(
-                data['items'] ?? [],
-              );
+                  data['items'] ?? []);
+              final userEmail = data['userEmail'] ?? "-";
 
               return Card(
                 color: cardColor,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
                   title: Text(
-                    "Total ${items.length} item",
+                    "User: $userEmail",
                     style: TextStyle(
                         fontWeight: FontWeight.bold, color: textColor),
                   ),
                   subtitle: Text(
-                    "Tanggal: ${createdAt != null ? createdAt.toDate().toLocal().toString().split(' ')[0] : '-'}\nStatus: $status",
+                    "Tgl: ${createdAt != null ? createdAt.toDate().toLocal().toString().split(' ')[0] : '-'}\n"
+                    "Total item: ${items.length}\n"
+                    "Status: $status",
                     style: TextStyle(color: statusColor(status)),
                   ),
                   trailing: Text(
@@ -173,7 +159,7 @@ class UserTransactionHistoryPage extends StatelessWidget {
                             onPressed: () => Navigator.pop(context),
                             child: Text(
                               "Tutup",
-                              style: TextStyle(color: theme.primaryColor),
+                              style: TextStyle(color: Theme.of(context).primaryColor),
                             ),
                           ),
                         ],

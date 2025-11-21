@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'user_cart_page.dart';
+import 'user_product_detail_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserShopPage extends StatefulWidget {
-  UserShopPage({super.key});
+  const UserShopPage({super.key});
 
   @override
   State<UserShopPage> createState() => _UserShopPageState();
@@ -13,11 +16,25 @@ class UserShopPage extends StatefulWidget {
 
 class _UserShopPageState extends State<UserShopPage> {
   String userName = "User";
+  final TextEditingController _searchC = TextEditingController();
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+
+    _searchC.addListener(() {
+      setState(() {
+        _searchQuery = _searchC.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchC.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserName() async {
@@ -41,283 +58,268 @@ class _UserShopPageState extends State<UserShopPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     final productsRef = FirebaseFirestore.instance
         .collection('products')
         .orderBy('createdAt', descending: true);
 
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final userId = currentUser?.uid;
+    final bgColor = isDark ? Colors.black : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final cardColor = isDark ? Colors.grey[900] : Colors.white;
+    final searchFillColor = isDark ? Colors.grey[850] : Colors.grey[200];
+    final priceColor = Colors.green[700];
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
+      backgroundColor: bgColor,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: isDark ? Colors.grey[800] : Colors.black,
+        icon: const Icon(Icons.shopping_cart, color: Colors.white),
+        label: const Text("Keranjang", style: TextStyle(color: Colors.white)),
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CartPage()),
           );
         },
-        child: const Icon(Icons.shopping_cart),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Halo, $userName 👋", style: textTheme.bodySmall),
-            const SizedBox(height: 16),
-            Text(
-              "Produk Tersedia",
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                "Halo, $userName 👋",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  color: textColor,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: productsRef.snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Text(
-                        "Belum ada produk tersedia.",
-                        style: textTheme.bodySmall,
-                      ),
-                    );
-                  }
-
-                  final docs = snapshot.data!.docs;
-
-                  return GridView.builder(
-                    itemCount: docs.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.7,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    itemBuilder: (context, index) {
-                      final doc = docs[index];
-                      final data = doc.data() as Map<String, dynamic>;
-                      final name = data['name'] ?? 'Tanpa nama';
-                      final price = data['price'] ?? 0;
-                      final imageBase64 = data['image'] as String?;
-                      final productId = doc.id;
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 3,
-                        color: colorScheme.surface,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (imageBase64 != null && imageBase64.isNotEmpty)
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
-                                child: AspectRatio(
-                                  aspectRatio: 4 / 3,
-                                  child: Builder(
-                                    builder: (context) {
-                                      try {
-                                        return Image.memory(
-                                          base64Decode(imageBase64),
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        );
-                                      } catch (e) {
-                                        return Container(
-                                          color: colorScheme.onSurface
-                                              .withOpacity(0.1),
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 40,
-                                            color: colorScheme.onSurface
-                                                .withOpacity(0.5),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              )
-                            else
-                              Container(
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.onSurface.withOpacity(0.1),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(12),
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.devices_other_rounded,
-                                  size: 40,
-                                  color: colorScheme.onSurface.withOpacity(0.5),
-                                ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Rp $price",
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: colorScheme.primary,
-                                        foregroundColor: colorScheme.onPrimary,
-                                      ),
-                                      onPressed: userId == null
-                                          ? null
-                                          : () async {
-                                              int selectedQty = 1;
-                                              await showDialog(
-                                                context: context,
-                                                builder: (_) => AlertDialog(
-                                                  title: Text("Jumlah $name"),
-                                                  content: StatefulBuilder(
-                                                    builder: (context, setState) {
-                                                      return Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          IconButton(
-                                                            onPressed: () {
-                                                              if (selectedQty >
-                                                                  1) {
-                                                                setState(() {
-                                                                  selectedQty--;
-                                                                });
-                                                              }
-                                                            },
-                                                            icon: const Icon(
-                                                              Icons.remove,
-                                                            ),
-                                                          ),
-                                                          Text("$selectedQty"),
-                                                          IconButton(
-                                                            onPressed: () {
-                                                              setState(() {
-                                                                selectedQty++;
-                                                              });
-                                                            },
-                                                            icon: const Icon(
-                                                              Icons.add,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      );
-                                                    },
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                            context,
-                                                          ),
-                                                      child: const Text(
-                                                        "Batal",
-                                                      ),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                            context,
-                                                            selectedQty,
-                                                          ),
-                                                      child: const Text(
-                                                        "Tambahkan",
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ).then((qty) async {
-                                                if (qty != null && qty is int) {
-                                                  final cartRef =
-                                                      FirebaseFirestore.instance
-                                                          .collection('carts')
-                                                          .doc(userId)
-                                                          .collection('items')
-                                                          .doc(productId);
-
-                                                  final cartDoc = await cartRef
-                                                      .get();
-
-                                                  if (cartDoc.exists) {
-                                                    final currentQty =
-                                                        (cartDoc['quantity'] ??
-                                                                1)
-                                                            as num;
-                                                    await cartRef.update({
-                                                      'quantity':
-                                                          currentQty.toInt() +
-                                                          qty,
-                                                    });
-                                                  } else {
-                                                    await cartRef.set({
-                                                      'productId': productId,
-                                                      'name': name,
-                                                      'price': price,
-                                                      'quantity': qty,
-                                                      'image': imageBase64,
-                                                    });
-                                                  }
-
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        "$name x$qty berhasil ditambahkan ke keranjang",
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              });
-                                            },
-                                      child: const Text("Beli"),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+              const SizedBox(height: 6),
+              Text(
+                "Temukan produk terbaik untukmu",
+                style: TextStyle(fontSize: 14, color: subTextColor),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _searchC,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  hintText: "Cari produk...",
+                  hintStyle: TextStyle(color: subTextColor),
+                  prefixIcon: Icon(Icons.search, color: subTextColor),
+                  filled: true,
+                  fillColor: searchFillColor,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
+                      width: 1.2,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white70 : Colors.black,
+                      width: 1.6,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Text(
+                "Produk Tersedia",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: productsRef.snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "Belum ada produk tersedia.",
+                          style: TextStyle(color: subTextColor),
                         ),
                       );
-                    },
-                  );
-                },
+                    }
+
+                    final docs = snapshot.data!.docs;
+                    final filteredDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = (data['name'] ?? '')
+                          .toString()
+                          .toLowerCase();
+                      if (_searchQuery.isEmpty) return true;
+                      return name.contains(_searchQuery);
+                    }).toList();
+
+                    if (filteredDocs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "Tidak ada produk yang cocok dengan pencarian.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: subTextColor),
+                        ),
+                      );
+                    }
+
+                    return GridView.builder(
+                      itemCount: filteredDocs.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                      itemBuilder: (context, index) {
+                        final doc = filteredDocs[index];
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = data['name'] ?? 'Tanpa nama';
+                        final price = (data['price'] ?? 0) as int;
+                        final imageBase64 = data['image'] as String?;
+                        final productId = doc.id;
+                        final description = data['description'] ?? '';
+
+                        void openDetail() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UserProductDetailPage(
+                                productId: productId,
+                                name: name,
+                                price: price,
+                                imageBase64: imageBase64,
+                                description: description,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return InkWell(
+                          onTap: openDetail,
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  spreadRadius: 2,
+                                  blurRadius: 12,
+                                  offset: const Offset(2, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(18),
+                                  ),
+                                  child:
+                                      imageBase64 != null &&
+                                          imageBase64.isNotEmpty
+                                      ? Image.memory(
+                                          base64Decode(imageBase64),
+                                          height: 130,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          height: 130,
+                                          color: isDark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200],
+                                          alignment: Alignment.center,
+                                          child: Icon(
+                                            Icons.image_not_supported,
+                                            size: 40,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        "Rp $price",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: priceColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: isDark
+                                                ? Colors.grey[800]
+                                                : Colors.black,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                          onPressed: openDetail,
+                                          child: const Text(
+                                            "Detail",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

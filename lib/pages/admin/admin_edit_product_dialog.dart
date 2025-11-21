@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -24,22 +26,25 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
   late TextEditingController nameCtrl;
   late TextEditingController priceCtrl;
   late TextEditingController stockCtrl;
+  late TextEditingController descCtrl;
 
   Uint8List? imageBytes;
   File? imageFile;
-  String? imageName;
 
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
-    nameCtrl = TextEditingController(text: widget.initialData['name']);
+    nameCtrl = TextEditingController(text: widget.initialData['name'] ?? "");
     priceCtrl = TextEditingController(
-      text: widget.initialData['price'].toString(),
+      text: (widget.initialData['price'] ?? 0).toString(),
     );
     stockCtrl = TextEditingController(
-      text: widget.initialData['stock'].toString(),
+      text: (widget.initialData['stock'] ?? 0).toString(),
+    );
+    descCtrl = TextEditingController(
+      text: widget.initialData['description'] ?? "",
     );
 
     final img = widget.initialData['image'] as String?;
@@ -59,7 +64,6 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
         if (picked != null) {
           imageFile = File(picked.path);
           imageBytes = await picked.readAsBytes();
-          imageName = picked.name;
           setState(() {});
         }
       } else {
@@ -69,7 +73,6 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
         );
         if (result != null) {
           imageBytes = result.files.first.bytes;
-          imageName = result.files.first.name;
           setState(() {});
         }
       }
@@ -81,8 +84,9 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
   Future<void> saveProduct() async {
     if (nameCtrl.text.isEmpty ||
         priceCtrl.text.isEmpty ||
-        stockCtrl.text.isEmpty)
+        stockCtrl.text.isEmpty) {
       return;
+    }
 
     setState(() => loading = true);
 
@@ -93,73 +97,81 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
           .collection('products')
           .doc(widget.docId)
           .update({
-            "name": nameCtrl.text.trim(),
-            "price": int.tryParse(priceCtrl.text) ?? 0,
-            "stock": int.tryParse(stockCtrl.text) ?? 0,
-            "image": base64Image ?? "",
-          });
+        "name": nameCtrl.text.trim(),
+        "price": int.tryParse(priceCtrl.text) ?? 0,
+        "stock": int.tryParse(stockCtrl.text) ?? 0,
+        "description": descCtrl.text.trim(),
+        "image": base64Image ?? (widget.initialData['image'] ?? ""),
+      });
 
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint("Error update product: $e");
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.grey[900] : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+
+    // Tombol Upload & Batal
+    final buttonColor = isDark ? Colors.grey[700]! : Colors.black;
+    final buttonTextColor = Colors.white;
+
+    // Tombol Simpan biru solid
+    final saveButtonColor = const Color(0xFF2563EB);
+
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Edit Produk", style: TextStyle(color: Colors.black)),
+      title: Text(
+        "Edit Produk",
+        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: "Nama Produk"),
-            ),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Harga"),
-            ),
-            TextField(
-              controller: stockCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Stok"),
-            ),
+            _buildTextField("Nama Produk", nameCtrl),
+            _buildTextField("Harga", priceCtrl, keyboard: TextInputType.number),
+            _buildTextField("Stok", stockCtrl, keyboard: TextInputType.number),
+            _buildTextField("Deskripsi Produk", descCtrl, maxLines: 3),
             const SizedBox(height: 16),
 
-            if (imageBytes != null)
-              ClipRRect(
+            Center(
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  imageBytes!,
+                child: Container(
                   width: 150,
                   height: 150,
-                  fit: BoxFit.cover,
+                  color: isDark ? Colors.grey[800] : Colors.grey[200],
+                  child: imageBytes != null
+                      ? Image.memory(imageBytes!, fit: BoxFit.cover)
+                      : imageFile != null
+                          ? Image.file(imageFile!, fit: BoxFit.cover)
+                          : Icon(Icons.image, size: 50, color: subTextColor),
                 ),
               ),
-            if (imageBytes == null && imageFile != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  imageFile!,
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.cover,
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: pickImage,
+                icon: Icon(Icons.image, color: buttonTextColor),
+                label: Text("Upload Gambar", style: TextStyle(color: buttonTextColor)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-
-            TextButton.icon(
-              onPressed: pickImage,
-              icon: const Icon(Icons.image, color: Colors.blue),
-              label: const Text(
-                "Upload Gambar",
-                style: TextStyle(color: Colors.blue),
               ),
             ),
           ],
@@ -168,20 +180,60 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Batal", style: TextStyle(color: Colors.black54)),
+          child: Text(
+            "Batal",
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: loading ? null : saveProduct,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: saveButtonColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           child: loading
               ? const SizedBox(
                   height: 16,
                   width: 16,
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text("Simpan"),
         ),
       ],
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboard = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboard,
+        maxLines: maxLines,
+        style: const TextStyle(fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+        ),
+      ),
     );
   }
 }

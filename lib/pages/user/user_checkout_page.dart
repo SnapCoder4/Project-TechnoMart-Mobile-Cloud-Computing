@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -15,7 +17,9 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
   String? address;
   String paymentMethod = "Cash";
   final int shippingFee = 8000;
+
   bool isLoading = true;
+  bool isProcessing = false;
 
   List<Map<String, dynamic>> cartItems = [];
 
@@ -27,37 +31,36 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
 
   Future<void> _loadUserData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    if (userId == null) {
+      setState(() => isLoading = false);
+      return;
+    }
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .get();
-    final cartSnapshot = await FirebaseFirestore.instance
-        .collection('carts')
-        .doc(userId)
-        .collection('items')
-        .get();
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final userDoc = await firestore.collection('users').doc(userId).get();
+      final cartSnapshot = await firestore
+          .collection('carts')
+          .doc(userId)
+          .collection('items')
+          .get();
 
-    setState(() {
-      address = userDoc.exists ? userDoc['address'] ?? '' : '';
-      cartItems = cartSnapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          'productId': data['productId'],
-          'name': data['name'],
-          'image': data['image'] ?? '',
-          'price': data['price'],
-          'quantity': data['quantity'],
-        };
-      }).toList();
-      isLoading = false;
-    });
+      final userData = userDoc.data();
+
+      setState(() {
+        address = userData?['address'] ?? "";
+        cartItems = cartSnapshot.docs.map((doc) => doc.data()).toList();
+        isLoading = false;
+      });
+    } catch (_) {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _checkout() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    if (isProcessing) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     if (cartItems.isEmpty) {
       ScaffoldMessenger.of(
@@ -66,162 +69,369 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
       return;
     }
 
-    final totalPrice = widget.totalAmount + shippingFee;
-    final orderRef = FirebaseFirestore.instance.collection('orders').doc();
+    setState(() => isProcessing = true);
 
-    final status = paymentMethod == "Transfer" ? "Paid" : "Pending";
+    try {
+      final userId = user.uid;
+      final totalPrice = widget.totalAmount + shippingFee;
 
-    await orderRef.set({
-      'userId': userId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'items': cartItems,
-      'paymentMethod': paymentMethod,
-      'status': status,
-      'shippingAddress': address ?? '',
-      'shippingFee': shippingFee,
-      'totalPrice': totalPrice,
-    });
+      final orderRef = FirebaseFirestore.instance.collection("orders").doc();
 
-    for (var item in cartItems) {
-      await FirebaseFirestore.instance
-          .collection('carts')
-          .doc(userId)
-          .collection('items')
-          .doc(item['productId'])
-          .delete();
+      await orderRef.set({
+        "id": orderRef.id,
+        "userId": userId,
+        "items": cartItems,
+        "status": "Paid",
+        "shippingAddress": address ?? "",
+        "shippingFee": shippingFee,
+        "paymentMethod": paymentMethod,
+        "totalPrice": totalPrice,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      for (var item in cartItems) {
+        FirebaseFirestore.instance
+            .collection("carts")
+            .doc(userId)
+            .collection("items")
+            .doc(item["productId"])
+            .delete();
+      }
+
+      if (!mounted) return;
+      Navigator.popUntil(context, (route) => route.isFirst);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Pesanan berhasil!")));
+    } finally {
+      if (mounted) setState(() => isProcessing = false);
     }
+  }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Checkout berhasil")));
+  Future<void> _showConfirmDialog(bool isDark) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            "Konfirmasi Pesanan",
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            "Apakah kamu yakin ingin melanjutkan dan membuat pesanan sekarang?",
+            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                "Tidak",
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Ya", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
 
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (confirmed == true) {
+      _checkout();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final bgColor = isDark ? Colors.black : Colors.grey[100];
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final cardColor = isDark ? Colors.grey[900] : Colors.white;
+    final buttonColor = isDark ? Colors.grey[800] : Colors.black;
+
     final totalPrice = widget.totalAmount + shippingFee;
 
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: bgColor,
+        body: Center(child: CircularProgressIndicator(color: buttonColor)),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Checkout")),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        title: const Text("Checkout"),
+        elevation: 0,
+        backgroundColor: bgColor,
+        foregroundColor: textColor,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(18),
+        child: ListView(
           children: [
-            Text("Alamat Pengiriman:"),
-            const SizedBox(height: 4),
             Text(
-              address ?? "-",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              "Alamat Pengiriman",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: textColor,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                address?.isEmpty ?? true ? "-" : address!,
+                style: TextStyle(fontSize: 15, color: textColor),
+              ),
+            ),
+            const SizedBox(height: 20),
 
             if (cartItems.isNotEmpty) ...[
-              const Text("Daftar Produk:"),
-              const SizedBox(height: 8),
+              Text(
+                "Ringkasan Produk",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 height: 150,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: cartItems.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     final item = cartItems[index];
-                    return Card(
-                      child: SizedBox(
-                        width: 120,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
+                    return Container(
+                      width: 140,
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            blurRadius: 6,
+                            color: isDark
+                                ? Colors.black.withOpacity(0.5)
+                                : Colors.black.withOpacity(0.05),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
                               child:
                                   item['image'] != null &&
                                       (item['image'] as String).isNotEmpty
                                   ? Image.memory(
                                       base64Decode(item['image']),
-                                      fit: BoxFit.cover,
                                       width: double.infinity,
+                                      fit: BoxFit.cover,
                                     )
-                                  : const Icon(Icons.image, size: 50),
+                                  : Icon(
+                                      Icons.image,
+                                      size: 50,
+                                      color: subTextColor,
+                                    ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Text(
-                                item['name'] ?? '',
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Text(
+                              item['name'] ?? '',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: textColor),
                             ),
-                            Text(
-                              "Rp ${item['price']} x ${item['quantity']}",
-                              style: const TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            "Rp ${item['price']} x ${item['quantity']}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: subTextColor,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+                        ],
                       ),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
 
-            Text("Ringkasan Pembayaran:"),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Subtotal:"),
-                Text("Rp ${widget.totalAmount}"),
-              ],
+            Text(
+              "Pembayaran",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: textColor,
+              ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [const Text("Ongkir:"), Text("Rp $shippingFee")],
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: 6,
+                    color: isDark
+                        ? Colors.black.withOpacity(0.5)
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  _row(
+                    "Subtotal",
+                    "Rp ${widget.totalAmount}",
+                    textColor,
+                    subTextColor,
+                  ),
+                  _row("Ongkir", "Rp $shippingFee", textColor, subTextColor),
+                  Divider(color: isDark ? Colors.white38 : Colors.black26),
+                  _row(
+                    "Total",
+                    "Rp $totalPrice",
+                    textColor,
+                    Colors.green,
+                    bold: true,
+                  ),
+                ],
+              ),
             ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Total:",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+            const SizedBox(height: 20),
+
+            Text(
+              "Metode Pembayaran",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
                 ),
-                Text(
-                  "Rp $totalPrice",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: paymentMethod,
+                  dropdownColor: cardColor,
+                  items: const [
+                    DropdownMenuItem(value: "Cash", child: Text("Cash")),
+                    DropdownMenuItem(
+                      value: "Transfer",
+                      child: Text("Transfer Bank"),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => paymentMethod = value!),
+                  style: TextStyle(color: textColor),
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 16),
-            DropdownButton<String>(
-              value: paymentMethod,
-              items: const [
-                DropdownMenuItem(value: "Cash", child: Text("Cash")),
-                DropdownMenuItem(value: "Transfer", child: Text("Transfer")),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    paymentMethod = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            Center(
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
-                onPressed: _checkout,
-                child: const Text("Konfirmasi Checkout"),
+                onPressed: isProcessing
+                    ? null
+                    : () => _showConfirmDialog(isDark),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: isProcessing
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Konfirmasi Pesanan",
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _row(
+    String title,
+    String value,
+    Color titleColor,
+    Color valueColor, {
+    bool bold = false,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              color: titleColor,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              color: color ?? valueColor,
+            ),
+          ),
+        ],
       ),
     );
   }
