@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
@@ -28,6 +29,16 @@ class UserProductDetailPage extends StatefulWidget {
 class _UserProductDetailPageState extends State<UserProductDetailPage> {
   int quantity = 1;
   bool loading = false;
+
+  Uint8List? productImageBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.imageBase64 != null && widget.imageBase64!.isNotEmpty) {
+      productImageBytes = base64Decode(widget.imageBase64!);
+    }
+  }
 
   Future<void> _addToCart() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -71,146 +82,141 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
     }
   }
 
+  void _showFullImage() {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: productImageBytes != null
+                  ? Image.memory(productImageBytes!, fit: BoxFit.contain)
+                  : const Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        size: 80,
+                        color: Colors.white54,
+                      ),
+                    ),
+            ),
+            Positioned(
+              right: 12,
+              top: 12,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
-    final bgColor = isDark ? Colors.black : Colors.grey[100];
-    final cardColor = isDark ? Colors.grey[900] : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final bgColor = isDark ? Colors.black : Colors.grey[100];
+    final cardColor = isDark ? Colors.grey[900] : Colors.white;
     final buttonColor = isDark ? Colors.grey[800] : Colors.black;
-    final iconColor = isDark ? Colors.white70 : Colors.black54;
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        elevation: 0,
         backgroundColor: bgColor,
+        elevation: 0,
         centerTitle: true,
         title: Text(
           widget.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            fontSize: 22,
-            letterSpacing: 0.3,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8),
-              ],
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_rounded,
-                color: iconColor,
-                size: 20,
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: textColor),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.black.withOpacity(0.6)
-                        : Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
+            GestureDetector(
+              onTap: _showFullImage,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child:
-                    widget.imageBase64 != null && widget.imageBase64!.isNotEmpty
-                    ? Image.memory(
-                        base64Decode(widget.imageBase64!),
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        height: 200,
-                        alignment: Alignment.center,
-                        color: cardColor,
-                        child: Icon(
-                          Icons.broken_image,
-                          size: 60,
-                          color: subTextColor,
-                        ),
-                      ),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 260,
+                  width: double.infinity,
+                  color: Colors.grey[300],
+                  child: productImageBytes != null
+                      ? Image.memory(productImageBytes!, fit: BoxFit.cover)
+                      : const Center(child: Icon(Icons.broken_image, size: 60)),
+                ),
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
+
             Text(
               widget.name,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: textColor,
-                letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+
             Text(
               "Rp ${widget.price}",
               style: TextStyle(
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.green[700],
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
+
             Text(
               "Deskripsi Produk",
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: textColor,
               ),
             ),
             const SizedBox(height: 6),
+
             Text(
               widget.description.isNotEmpty
                   ? widget.description
                   : "Tidak ada deskripsi.",
               style: TextStyle(fontSize: 14, color: subTextColor),
             ),
-            const SizedBox(height: 28),
+
+            const SizedBox(height: 22),
+
             Text(
               "Jumlah",
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: textColor,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey),
                 color: cardColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -232,7 +238,9 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -241,16 +249,16 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
                   backgroundColor: buttonColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: loading
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
                           color: Colors.white,
+                          strokeWidth: 2,
                         ),
                       )
                     : const Text(
