@@ -7,7 +7,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserCheckoutPage extends StatefulWidget {
   final int totalAmount;
-  const UserCheckoutPage({super.key, required this.totalAmount});
+  final List<Map<String, dynamic>>? selectedProducts; 
+
+  const UserCheckoutPage({
+    super.key,
+    required this.totalAmount,
+    this.selectedProducts,
+  });
 
   @override
   State<UserCheckoutPage> createState() => _UserCheckoutPageState();
@@ -39,17 +45,22 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
     try {
       final firestore = FirebaseFirestore.instance;
       final userDoc = await firestore.collection('users').doc(userId).get();
-      final cartSnapshot = await firestore
-          .collection('carts')
-          .doc(userId)
-          .collection('items')
-          .get();
 
       final userData = userDoc.data();
 
+      if (widget.selectedProducts != null) {
+        cartItems = widget.selectedProducts!;
+      } else {
+        final cartSnapshot = await firestore
+            .collection('carts')
+            .doc(userId)
+            .collection('items')
+            .get();
+        cartItems = cartSnapshot.docs.map((doc) => doc.data()).toList();
+      }
+
       setState(() {
         address = userData?['address'] ?? "";
-        cartItems = cartSnapshot.docs.map((doc) => doc.data()).toList();
         isLoading = false;
       });
     } catch (_) {
@@ -89,13 +100,24 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
         "createdAt": FieldValue.serverTimestamp(),
       });
 
-      for (var item in cartItems) {
-        FirebaseFirestore.instance
-            .collection("carts")
-            .doc(userId)
-            .collection("items")
-            .doc(item["productId"])
-            .delete();
+      if (widget.selectedProducts == null) {
+        for (var item in cartItems) {
+          FirebaseFirestore.instance
+              .collection("carts")
+              .doc(userId)
+              .collection("items")
+              .doc(item["productId"])
+              .delete();
+        }
+      } else {
+        for (var item in widget.selectedProducts!) {
+          FirebaseFirestore.instance
+              .collection("carts")
+              .doc(userId)
+              .collection("items")
+              .doc(item["productId"])
+              .delete();
+        }
       }
 
       if (!mounted) return;
@@ -255,8 +277,7 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(16),
                               ),
-                              child:
-                                  item['image'] != null &&
+                              child: item['image'] != null &&
                                       (item['image'] as String).isNotEmpty
                                   ? Image.memory(
                                       base64Decode(item['image']),
@@ -380,9 +401,7 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isProcessing
-                    ? null
-                    : () => _showConfirmDialog(isDark),
+                onPressed: isProcessing ? null : () => _showConfirmDialog(isDark),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
