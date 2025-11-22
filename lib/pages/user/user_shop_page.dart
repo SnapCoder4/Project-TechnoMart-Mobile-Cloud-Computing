@@ -183,7 +183,7 @@ class _UserShopPageState extends State<UserShopPage> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 0.75,
+                            childAspectRatio: 0.72,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
@@ -230,83 +230,92 @@ class _UserShopPageState extends State<UserShopPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(18),
-                                  ),
-                                  child:
-                                      imageBase64 != null &&
-                                          imageBase64.isNotEmpty
-                                      ? Image.memory(
-                                          base64Decode(imageBase64),
-                                          height: 130,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          height: 130,
-                                          color: isDark
-                                              ? Colors.grey[800]
-                                              : Colors.grey[200],
-                                          alignment: Alignment.center,
-                                          child: Icon(
-                                            Icons.image_not_supported,
-                                            size: 40,
-                                            color: subTextColor,
-                                          ),
-                                        ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        "Rp $price",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: priceColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: isDark
+                                // BAGIAN GAMBAR fleksibel
+                                Expanded(
+                                  flex: 5,
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(18),
+                                    ),
+                                    child:
+                                        imageBase64 != null &&
+                                            imageBase64.isNotEmpty
+                                        ? Image.memory(
+                                            base64Decode(imageBase64),
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            width: double.infinity,
+                                            color: isDark
                                                 ? Colors.grey[800]
-                                                : Colors.black,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 10,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
+                                                : Colors.grey[200],
+                                            alignment: Alignment.center,
+                                            child: Icon(
+                                              Icons.image_not_supported,
+                                              size: 40,
+                                              color: subTextColor,
                                             ),
                                           ),
-                                          onPressed: openDetail,
-                                          child: const Text(
-                                            "Detail",
-                                            style: TextStyle(
-                                              color: Colors.white,
+                                  ),
+                                ),
+
+                                // BAGIAN TEKS + BUTTON fleksibel
+                                Expanded(
+                                  flex: 6,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          "Rp $price",
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: priceColor,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isDark
+                                                  ? Colors.grey[800]
+                                                  : Colors.black,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 10,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                              ),
+                                            ),
+                                            onPressed: openDetail,
+                                            child: const Text(
+                                              "Detail",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
