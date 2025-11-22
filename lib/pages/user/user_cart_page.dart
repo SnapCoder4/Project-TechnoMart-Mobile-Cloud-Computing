@@ -6,8 +6,15 @@ import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class CartPage extends StatelessWidget {
+class CartPage extends StatefulWidget {
   const CartPage({super.key});
+
+  @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  Map<String, bool> selectedItems = {};
 
   @override
   Widget build(BuildContext context) {
@@ -63,12 +70,16 @@ class CartPage extends StatelessWidget {
           }
 
           final docs = snapshot.data!.docs;
+
           int total = 0;
           for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final price = data['price'] ?? 0;
-            final qty = data['quantity'] ?? 1;
-            total += (price as num).toInt() * (qty as num).toInt();
+            final docId = doc.id;
+            if (selectedItems[docId] == true) {
+              final data = doc.data() as Map<String, dynamic>;
+              final price = data['price'] ?? 0;
+              final qty = data['quantity'] ?? 1;
+              total += (price as num).toInt() * (qty as num).toInt();
+            }
           }
 
           return ListView.builder(
@@ -130,71 +141,89 @@ class CartPage extends StatelessWidget {
                         color: subTextColor,
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            backgroundColor: cardColor,
-                            title: Text(
-                              "Hapus Produk",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
-                            ),
-                            content: Text(
-                              "Yakin menghapus \"$name\" dari keranjang?",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: subTextColor,
-                              ),
-                            ),
-                            actionsPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text(
-                                  "Batal",
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: selectedItems[docId] ?? false,
+                          onChanged: (val) {
+                            setState(() {
+                              selectedItems[docId] = val ?? false;
+                            });
+                          },
+                          activeColor: Colors.green,
+                        ),
+                        IconButton(
+                          icon:
+                              const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                backgroundColor: cardColor,
+                                title: Text(
+                                  "Hapus Produk",
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
                                   ),
                                 ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text(
-                                  "Hapus",
+                                content: Text(
+                                  "Yakin menghapus \"$name\" dari keranjang?",
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
+                                    fontSize: 15,
+                                    color: subTextColor,
                                   ),
                                 ),
+                                actionsPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: Text(
+                                      "Batal",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text(
+                                      "Hapus",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
+                            );
 
-                        if (confirm == true) {
-                          await cartRef.doc(docId).delete();
-                        }
-                      },
+                            if (confirm == true) {
+                              await cartRef.doc(docId).delete();
+                              setState(() {
+                                selectedItems.remove(docId);
+                              });
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -238,15 +267,26 @@ class CartPage extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        UserCheckoutPage(totalAmount: total),
-                                  ),
-                                );
-                              },
+                              onPressed: total > 0
+                                  ? () {
+                                      final selectedDocs = docs
+                                          .where(
+                                              (doc) => selectedItems[doc.id] == true)
+                                          .map((doc) =>
+                                              doc.data() as Map<String, dynamic>)
+                                          .toList();
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => UserCheckoutPage(
+                                            totalAmount: total,
+                                            selectedProducts: selectedDocs,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
                               child: Text(
                                 "Lanjut Checkout",
                                 style: TextStyle(
