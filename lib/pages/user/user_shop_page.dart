@@ -230,7 +230,6 @@ class _UserShopPageState extends State<UserShopPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // BAGIAN GAMBAR fleksibel
                                 Expanded(
                                   flex: 5,
                                   child: ClipRRect(
@@ -260,7 +259,6 @@ class _UserShopPageState extends State<UserShopPage> {
                                   ),
                                 ),
 
-                                // BAGIAN TEKS + BUTTON fleksibel
                                 Expanded(
                                   flex: 6,
                                   child: Padding(
