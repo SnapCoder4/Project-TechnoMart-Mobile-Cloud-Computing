@@ -144,7 +144,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
       backgroundColor: bgColor,
       body: Column(
         children: [
-          // Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -182,7 +181,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
             ),
           ),
 
-          // Chat Messages
           Expanded(
             child: Container(
               color: bgColor,
@@ -257,7 +255,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
             ),
           ),
 
-          // Input Field
           Container(
             color: bgColor,
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),

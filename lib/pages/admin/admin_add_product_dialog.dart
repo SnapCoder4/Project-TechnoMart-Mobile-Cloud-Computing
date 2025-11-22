@@ -90,12 +90,8 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
     final bgColor = isDark ? Colors.grey[900] : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.white70 : Colors.black54;
-
-    // Tombol Upload & Batal
     final buttonColor = isDark ? Colors.grey[700]! : Colors.black;
     final buttonTextColor = Colors.white;
-
-    // Tombol Simpan biru solid
     final saveButtonColor = const Color(0xFF2563EB);
 
     return AlertDialog(

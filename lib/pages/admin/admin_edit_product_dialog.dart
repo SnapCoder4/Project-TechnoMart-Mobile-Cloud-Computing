@@ -115,16 +115,11 @@ class _AdminEditProductDialogState extends State<AdminEditProductDialog> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-
     final bgColor = isDark ? Colors.grey[900] : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.white70 : Colors.black54;
-
-    // Tombol Upload & Batal
     final buttonColor = isDark ? Colors.grey[700]! : Colors.black;
     final buttonTextColor = Colors.white;
-
-    // Tombol Simpan biru solid
     final saveButtonColor = const Color(0xFF2563EB);
 
     return AlertDialog(
