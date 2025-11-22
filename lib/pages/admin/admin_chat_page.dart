@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminChatPage extends StatefulWidget {
   final String userId;
@@ -88,7 +90,6 @@ class _AdminChatPageState extends State<AdminChatPage> {
     }
   }
 
-  // Kirim pesan bot kalau chat baru berisi 1 pesan dari user
   Future<void> _maybeSendFirstBotReply(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) async {
@@ -130,192 +131,192 @@ class _AdminChatPageState extends State<AdminChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
+    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            CircleAvatar(
-              child: Text(
-                (widget.userName.isNotEmpty ? widget.userName[0] : "?")
-                    .toUpperCase(),
-              ),
+      backgroundColor: bgColor,
+      body: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: cardColor,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+              ],
             ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  widget.userName,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                IconButton(
+                  icon: Icon(Icons.arrow_back_rounded, color: iconColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                CircleAvatar(
+                  backgroundColor: iconColor,
+                  child: Text(
+                    widget.userName.isNotEmpty
+                        ? widget.userName[0].toUpperCase()
+                        : "?",
+                    style: TextStyle(color: cardColor),
                   ),
                 ),
+                const SizedBox(width: 10),
                 Text(
-                  "Customer Technomart",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                  widget.userName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    fontSize: 16,
                   ),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
 
-      // background color theme
-      backgroundColor: theme.scaffoldBackgroundColor,
-
-      body: Column(
-        children: [
+          // Chat Messages
           Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _messagesCol
-                  .orderBy('createdAt', descending: false)
-                  .snapshots(),
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: Container(
+              color: bgColor,
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _messagesCol.orderBy('createdAt').snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final docs = snap.data?.docs ?? [];
+                  final docs = snap.data?.docs ?? [];
 
-                if (docs.isNotEmpty) {
-                  _maybeSendFirstBotReply(docs);
-                }
+                  if (docs.isNotEmpty) {
+                    _maybeSendFirstBotReply(docs);
+                  }
 
-                if (docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "Belum ada percakapan.\nSilakan mulai chat dengan user.",
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                          0.7,
-                        ),
+                  if (docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        "Belum ada percakapan.\nSilakan mulai chat dengan user.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: subTextColor),
                       ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                  );
-                }
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data();
+                      final text = data['text'] ?? '';
+                      final role = data['senderRole'] ?? 'user';
 
-                return ListView.builder(
-                  controller: _scrollCtrl,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                  itemCount: docs.length,
-                  itemBuilder: (context, i) {
-                    final data = docs[i].data();
-                    final text = data['text'] ?? '';
-                    final role = data['senderRole'] ?? 'user';
-
-                    // dari sudut pandang ADMIN:
-                    final isFromStore = role == 'admin' || role == 'bot';
-
-                    return Align(
-                      alignment: isFromStore
+                      final isAdmin = role == 'admin' || role == 'bot';
+                      final align = isAdmin
                           ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isFromStore
-                              ? const Color(0xFF22C55E)
-                              : theme.cardColor,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(16),
-                            topRight: const Radius.circular(16),
-                            bottomLeft: isFromStore
-                                ? const Radius.circular(16)
-                                : const Radius.circular(4),
-                            bottomRight: isFromStore
-                                ? const Radius.circular(4)
-                                : const Radius.circular(16),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                          : Alignment.centerLeft;
+                      final crossAlign = isAdmin
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start;
+                      final bubbleColor = isAdmin
+                          ? cardColor.withOpacity(0.2)
+                          : cardColor;
+                      final bubbleTextColor = textColor;
+
+                      return Align(
+                        alignment: align,
+                        child: Column(
+                          crossAxisAlignment: crossAlign,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                vertical: 3,
+                                horizontal: 6,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: bubbleColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                text,
+                                style: TextStyle(
+                                  color: bubbleTextColor,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                            color: isFromStore
-                                ? Colors.white
-                                : theme.textTheme.bodyMedium?.color,
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
 
-          // input pesan
+          // Input Field
           Container(
-            color: colorScheme.surface,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _msgCtrl,
-                      minLines: 1,
-                      maxLines: 4,
-                      style: theme.textTheme.bodyMedium,
-                      decoration: InputDecoration(
-                        hintText: "Tulis balasan untuk ${widget.userName}...",
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                            0.6,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: colorScheme.surfaceVariant,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          borderSide: BorderSide.none,
-                        ),
+            color: bgColor,
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _msgCtrl,
+                    minLines: 1,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: "Ketik balasan...",
+                      hintStyle: TextStyle(color: subTextColor),
+                      filled: true,
+                      fillColor: cardColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
                       ),
                     ),
+                    style: TextStyle(color: textColor),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    icon: _sending
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _sending ? null : _sendMessage,
+                  child: Container(
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: iconColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: _sending
                         ? const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Icon(Icons.send_rounded, color: colorScheme.primary),
-                    onPressed: _sending ? null : _sendMessage,
+                        : Icon(Icons.send_rounded, color: cardColor, size: 20),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

@@ -1,7 +1,6 @@
+import 'admin_chat_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'admin_chat_page.dart';
 
 class AdminChatListPage extends StatelessWidget {
   const AdminChatListPage({super.key});
@@ -11,8 +10,16 @@ class AdminChatListPage extends StatelessWidget {
     final usersStream = FirebaseFirestore.instance
         .collection('users')
         .snapshots();
-
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black45;
+    final tileColor = isDark ? Colors.grey[850] : Colors.white;
+    final shadowColor = isDark
+        ? Colors.black.withOpacity(0.3)
+        : Colors.black.withOpacity(0.15);
 
     return Container(
       color: theme.scaffoldBackgroundColor,
@@ -28,8 +35,9 @@ class AdminChatListPage extends StatelessWidget {
               child: Text(
                 "Belum ada user yang terdaftar / chat.",
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color: subTextColor,
                 ),
+                textAlign: TextAlign.center,
               ),
             );
           }
@@ -37,6 +45,7 @@ class AdminChatListPage extends StatelessWidget {
           final docs = snap.data!.docs;
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: docs.length,
             itemBuilder: (context, i) {
               final userDoc = docs[i];
@@ -45,30 +54,60 @@ class AdminChatListPage extends StatelessWidget {
               final name = data['name'] ?? 'User';
               final email = data['email'] ?? '';
 
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text((name.isNotEmpty ? name[0] : "?").toUpperCase()),
-                ),
-                title: Text(name, style: theme.textTheme.bodyLarge),
-                subtitle: Text(
-                  email,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-                  ),
-                ),
-                trailing: Icon(
-                  Icons.chevron_right_rounded,
-                  color: theme.iconTheme.color?.withOpacity(0.7),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          AdminChatPage(userId: uid, userName: name),
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: tileColor,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: shadowColor,
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 3),
                     ),
-                  );
-                },
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: isDark
+                        ? Colors.grey[700]
+                        : Colors.grey[300],
+                    child: Text(
+                      (name.isNotEmpty ? name[0] : "?").toUpperCase(),
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    name,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: textColor,
+                    ),
+                  ),
+                  subtitle: Text(
+                    email,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: subTextColor,
+                    ),
+                  ),
+                  trailing: Icon(Icons.chevron_right_rounded, color: iconColor),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AdminChatPage(userId: uid, userName: name),
+                      ),
+                    );
+                  },
+                ),
               );
             },
           );

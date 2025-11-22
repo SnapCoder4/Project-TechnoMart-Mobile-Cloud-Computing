@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -36,231 +38,370 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     super.dispose();
   }
 
+  Future<bool?> _confirmDelete(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = themeProvider.isDarkMode;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          "Konfirmasi Hapus",
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          "Apakah Anda yakin ingin menghapus produk ini?",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              foregroundColor: isDark ? Colors.white : Colors.black,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+            ),
+            child: Text(
+              "Batal",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              "Hapus",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
     final productsRef = FirebaseFirestore.instance
         .collection('products')
         .orderBy('createdAt', descending: true);
 
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            "Halo, Admin 👋",
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            widget.adminEmail,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "Daftar Produk",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
+    final bgColor = isDark ? Colors.black : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final cardColor = isDark ? Colors.grey[900] : Colors.white;
+    final searchFillColor = isDark ? Colors.grey[850] : Colors.grey[200];
+    final priceColor = Colors.green[700];
 
-          // SEARCH BAR
-          TextField(
-            controller: _searchC,
-            decoration: InputDecoration(
-              hintText: "Cari produk berdasarkan nama...",
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                "Halo, Admin 👋",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  color: textColor,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 0,
+              const SizedBox(height: 6),
+              Text(
+                widget.adminEmail,
+                style: TextStyle(fontSize: 14, color: subTextColor),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
+              const SizedBox(height: 24),
 
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: productsRef.snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "Belum ada produk.\nTap tombol + untuk menambah.",
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium,
+              TextField(
+                controller: _searchC,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  hintText: "Cari produk...",
+                  hintStyle: TextStyle(color: subTextColor),
+                  prefixIcon: Icon(Icons.search, color: subTextColor),
+                  filled: true,
+                  fillColor: searchFillColor,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.grey[700]! : Colors.grey.shade300,
+                      width: 1.2,
                     ),
-                  );
-                }
-
-                final docs = snapshot.data!.docs;
-
-                final filteredDocs = docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  if (_searchQuery.isEmpty) return true;
-                  return name.contains(_searchQuery);
-                }).toList();
-
-                if (filteredDocs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      "Tidak ada produk yang cocok dengan pencarian.",
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.7,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
                   ),
-                  itemCount: filteredDocs.length,
-                  itemBuilder: (context, index) {
-                    final doc = filteredDocs[index];
-                    final data = doc.data() as Map<String, dynamic>;
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white70 : Colors.black,
+                      width: 1.6,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Text(
+                "Daftar Produk",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 12),
 
-                    final name = data['name'] ?? 'Tanpa nama';
-                    final price = data['price'] ?? 0;
-                    final stock = data['stock'] ?? 0;
-                    final desc = data['description'] ?? '';
-                    final imageBase64 = data['image'] as String?;
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: productsRef.snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                    return Card(
-                      color: theme.cardColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (imageBase64 != null && imageBase64.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12),
-                              ),
-                              child: AspectRatio(
-                                aspectRatio: 4 / 3,
-                                child: Image.memory(
-                                  base64Decode(imageBase64),
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "Belum ada produk.\nTap tombol + untuk menambah.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: subTextColor),
+                        ),
+                      );
+                    }
+
+                    final docs = snapshot.data!.docs;
+                    final filteredDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = (data['name'] ?? '')
+                          .toString()
+                          .toLowerCase();
+                      if (_searchQuery.isEmpty) return true;
+                      return name.contains(_searchQuery);
+                    }).toList();
+
+                    if (filteredDocs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "Tidak ada produk yang cocok dengan pencarian.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: subTextColor),
+                        ),
+                      );
+                    }
+
+                    return GridView.builder(
+                      itemCount: filteredDocs.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                      itemBuilder: (context, index) {
+                        final doc = filteredDocs[index];
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = data['name'] ?? 'Tanpa nama';
+                        final price = data['price'] ?? 0;
+                        final stock = data['stock'] ?? 0;
+                        final desc = data['description'] ?? '';
+                        final imageBase64 = data['image'] as String?;
+
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  spreadRadius: 2,
+                                  blurRadius: 12,
+                                  offset: const Offset(2, 4),
                                 ),
-                              ),
-                            )
-                          else
-                            Container(
-                              width: double.infinity,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: colorScheme.onSurface.withOpacity(0.05),
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.image,
-                                size: 50,
-                                color: colorScheme.onSurface.withOpacity(0.4),
-                              ),
+                              ],
                             ),
-
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  name,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(18),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  child:
+                                      imageBase64 != null &&
+                                          imageBase64.isNotEmpty
+                                      ? Image.memory(
+                                          base64Decode(imageBase64),
+                                          height: 130,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          height: 130,
+                                          color: isDark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200],
+                                          alignment: Alignment.center,
+                                          child: Icon(
+                                            Icons.image_not_supported,
+                                            size: 40,
+                                            color: subTextColor,
+                                          ),
+                                        ),
                                 ),
-                                Text(
-                                  "Rp $price",
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.9),
+
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+
+                                      Text(
+                                        "Rp $price",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: priceColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+
+                                      Text(
+                                        "Stok: $stock",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: subTextColor,
+                                        ),
+                                      ),
+
+                                      if (desc.toString().isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          desc,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                      ],
+
+                                      const SizedBox(height: 10),
+
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.blueAccent,
+                                              minimumSize: const Size(80, 36),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              size: 18,
+                                              color: Colors.white,
+                                            ),
+                                            label: const Text(
+                                              "Edit",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            onPressed: () => widget
+                                                .onEditProduct(doc.id, data),
+                                          ),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.redAccent,
+                                              minimumSize: const Size(80, 36),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              size: 18,
+                                              color: Colors.white,
+                                            ),
+                                            label: const Text(
+                                              "Hapus",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            onPressed: () async {
+                                              final confirm =
+                                                  await _confirmDelete(context);
+                                              if (confirm == true) {
+                                                await FirebaseFirestore.instance
+                                                    .collection('products')
+                                                    .doc(doc.id)
+                                                    .delete();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  "Stok: $stock",
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.textTheme.bodySmall?.color
-                                        ?.withOpacity(0.7),
-                                  ),
-                                ),
-                                if (desc.toString().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    desc,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.textTheme.bodySmall?.color
-                                          ?.withOpacity(0.7),
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.edit,
-                                  color: colorScheme.primary,
-                                ),
-                                onPressed: () =>
-                                    widget.onEditProduct(doc.id, data),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete,
-                                  color: colorScheme.error,
-                                ),
-                                onPressed: () async {
-                                  await FirebaseFirestore.instance
-                                      .collection('products')
-                                      .doc(doc.id)
-                                      .delete();
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

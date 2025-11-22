@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -106,17 +108,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100]!;
+    final cardColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final buttonColor = isDark ? Colors.grey[800]! : Colors.black;
+    final buttonTextColor = isDark ? Colors.white : Colors.white;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor,
+        backgroundColor: cardColor,
         elevation: 1,
         iconTheme: theme.iconTheme,
-        title: Text(
-          "Edit Profil",
-          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-        ),
+        title: Text("Edit Profil", style: TextStyle(color: textColor)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -124,7 +131,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           children: [
             TextField(
               controller: nameC,
-              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 labelText: "Nama",
                 labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
@@ -133,7 +140,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             const SizedBox(height: 12),
             TextField(
               controller: addressC,
-              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 labelText: "Alamat",
                 labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
@@ -148,13 +155,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 : ElevatedButton(
                     onPressed: _saveProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primaryColor,
+                      backgroundColor: buttonColor,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
                         "Simpan Perubahan",
-                        style: TextStyle(color: theme.scaffoldBackgroundColor),
+                        style: TextStyle(color: buttonTextColor),
                       ),
                     ),
                   ),

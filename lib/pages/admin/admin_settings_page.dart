@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
 import 'admin_change_password_page.dart';
+import '../providers/theme_provider.dart';
 import 'admin_transaction_history_page.dart';
 
 class AdminSettingsPage extends StatelessWidget {
@@ -10,75 +10,103 @@ class AdminSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final theme = Theme.of(context);
+    final isDark = themeProvider.isDarkMode;
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: ListView(
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            "Pengaturan Admin",
-            style: theme.textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
+    final bgColor = isDark ? Colors.black : Colors.grey.shade100;
+    final cardColor = isDark ? Colors.grey.shade900 : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
+    final dividerColor = isDark ? Colors.white10 : Colors.black12;
 
-          // Ubah Password
-          ListTile(
-            leading: Icon(Icons.lock, color: theme.iconTheme.color),
-            title: Text("Ubah Password", style: theme.textTheme.bodyLarge),
+    Widget buildSettingTile({
+      required IconData icon,
+      required String title,
+      required VoidCallback onTap,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Material(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(12),
+          child: ListTile(
+            leading: Icon(icon, color: iconColor),
+            title: Text(title, style: TextStyle(color: textColor)),
             trailing: Icon(
               Icons.arrow_forward_ios,
-              color: theme.textTheme.bodySmall?.color,
+              color: subTextColor,
+              size: 16,
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AdminChangePasswordPage(),
-                ),
-              );
-            },
-          ),
-          Divider(color: theme.dividerColor),
-
-          // Riwayat Transaksi
-          ListTile(
-            leading: Icon(Icons.history, color: theme.iconTheme.color),
-            title: Text("Riwayat Transaksi", style: theme.textTheme.bodyLarge),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              color: theme.textTheme.bodySmall?.color,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AdminTransactionHistoryPage(),
-                ),
-              );
-            },
+            onTap: onTap,
           ),
-          Divider(color: theme.dividerColor),
+        ),
+      );
+    }
 
-          const SizedBox(height: 16),
-
-          // Mode Gelap / Terang
-          SwitchListTile(
-            value: themeProvider.isDarkMode,
-            activeThumbColor: Colors.blue,
-            activeTrackColor: Colors.blue.withAlpha((0.5 * 255).toInt()),
-            secondary: Icon(
-              themeProvider.isDarkMode
-                  ? Icons.nightlight_round
-                  : Icons.wb_sunny,
-              color: theme.iconTheme.color,
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: cardColor,
+        elevation: 1,
+        iconTheme: IconThemeData(color: iconColor),
+        title: Text(
+          "Pengaturan Admin",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ListView(
+          children: [
+            buildSettingTile(
+              icon: Icons.lock,
+              title: "Ubah Password",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminChangePasswordPage(),
+                  ),
+                );
+              },
             ),
-            title: Text("Ubah Tema", style: theme.textTheme.bodyLarge),
-            onChanged: (val) => themeProvider.toggleTheme(val),
-          ),
-        ],
+            Divider(color: dividerColor, height: 20),
+
+            buildSettingTile(
+              icon: Icons.history,
+              title: "Riwayat Transaksi",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminTransactionHistoryPage(),
+                  ),
+                );
+              },
+            ),
+            Divider(color: dividerColor, height: 20),
+
+            SwitchListTile(
+              value: isDark,
+              activeColor: Colors.blue,
+              inactiveThumbColor: Colors.grey,
+              inactiveTrackColor: Colors.grey.withAlpha(120),
+              secondary: Icon(
+                isDark ? Icons.nightlight_round : Icons.wb_sunny,
+                color: iconColor,
+              ),
+              title: Text("Ubah Tema", style: TextStyle(color: textColor)),
+              tileColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onChanged: (val) => themeProvider.toggleTheme(val),
+            ),
+          ],
+        ),
       ),
     );
   }

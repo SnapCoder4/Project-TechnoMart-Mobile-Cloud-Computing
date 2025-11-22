@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -82,72 +84,68 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.grey[900] : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+
+    // Tombol Upload & Batal
+    final buttonColor = isDark ? Colors.grey[700]! : Colors.black;
+    final buttonTextColor = Colors.white;
+
+    // Tombol Simpan biru solid
+    final saveButtonColor = const Color(0xFF2563EB);
 
     return AlertDialog(
-      backgroundColor: theme.dialogBackgroundColor,
+      backgroundColor: bgColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
         "Tambah Produk",
-        style: theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
       ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: "Nama Produk"),
-            ),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Harga"),
-            ),
-            TextField(
-              controller: stockCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Stok"),
-            ),
-            TextField(
-              controller: descCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: "Deskripsi Produk",
-                alignLabelWithHint: true,
-              ),
-            ),
+            _buildTextField("Nama Produk", nameCtrl),
+            _buildTextField("Harga", priceCtrl, keyboard: TextInputType.number),
+            _buildTextField("Stok", stockCtrl, keyboard: TextInputType.number),
+            _buildTextField("Deskripsi Produk", descCtrl, maxLines: 3),
             const SizedBox(height: 16),
-            if (imageBytes != null)
-              ClipRRect(
+
+            Center(
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  imageBytes!,
+                child: Container(
                   width: 150,
                   height: 150,
-                  fit: BoxFit.cover,
-                ),
-              )
-            else if (imageFile != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  imageFile!,
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.cover,
+                  color: isDark ? Colors.grey[800] : Colors.grey[200],
+                  child: imageBytes != null
+                      ? Image.memory(imageBytes!, fit: BoxFit.cover)
+                      : imageFile != null
+                      ? Image.file(imageFile!, fit: BoxFit.cover)
+                      : Icon(Icons.image, size: 50, color: subTextColor),
                 ),
               ),
-            TextButton.icon(
-              onPressed: pickImage,
-              icon: Icon(Icons.image, color: colorScheme.primary),
-              label: Text(
-                "Upload Gambar",
-                style: TextStyle(color: colorScheme.primary),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: pickImage,
+                icon: Icon(Icons.image, color: buttonTextColor),
+                label: Text(
+                  "Upload Gambar",
+                  style: TextStyle(color: buttonTextColor),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
           ],
@@ -156,23 +154,60 @@ class _AdminAddProductDialogState extends State<AdminAddProductDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text("Batal", style: theme.textTheme.labelLarge),
+          child: Text(
+            "Batal",
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: loading ? null : saveProduct,
           style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
+            backgroundColor: saveButtonColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: loading
               ? const SizedBox(
-                  width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text("Simpan"),
         ),
       ],
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboard = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboard,
+        maxLines: maxLines,
+        style: const TextStyle(fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+        ),
+      ),
     );
   }
 }

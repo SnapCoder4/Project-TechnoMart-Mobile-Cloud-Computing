@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserProductDetailPage extends StatefulWidget {
   final String productId;
@@ -26,6 +29,21 @@ class UserProductDetailPage extends StatefulWidget {
 class _UserProductDetailPageState extends State<UserProductDetailPage> {
   int quantity = 1;
   bool loading = false;
+
+  // decode sekali saja
+  Uint8List? _imageBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.imageBase64 != null && widget.imageBase64!.isNotEmpty) {
+      try {
+        _imageBytes = base64Decode(widget.imageBase64!);
+      } catch (_) {
+        _imageBytes = null;
+      }
+    }
+  }
 
   Future<void> _addToCart() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -57,17 +75,13 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "${widget.name} x$quantity berhasil ditambahkan ke keranjang",
-          ),
-        ),
+        SnackBar(content: Text("${widget.name} ditambahkan ke keranjang.")),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal menambahkan ke keranjang: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -75,112 +89,198 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
+    final bgColor = isDark ? Colors.black : Colors.grey[100];
+    final cardColor = isDark ? Colors.grey[900] : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final buttonColor = isDark ? Colors.grey[800] : Colors.black;
+    final iconColor = isDark ? Colors.white70 : Colors.black54;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.name)),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: bgColor,
+        centerTitle: true,
+        title: Text(
+          widget.name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            fontSize: 22,
+            letterSpacing: 0.3,
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_rounded,
+                color: iconColor,
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar
-            AspectRatio(
-              aspectRatio: 4 / 3,
+            // IMAGE
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.6)
+                        : Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child:
-                    widget.imageBase64 != null && widget.imageBase64!.isNotEmpty
+                borderRadius: BorderRadius.circular(18),
+                child: _imageBytes != null
                     ? Image.memory(
-                        base64Decode(widget.imageBase64!),
+                        _imageBytes!,
                         width: double.infinity,
                         fit: BoxFit.cover,
                       )
                     : Container(
-                        color: colorScheme.onSurface.withOpacity(0.1),
+                        height: 200,
+                        alignment: Alignment.center,
+                        color: cardColor,
                         child: Icon(
-                          Icons.devices_other_rounded,
-                          size: 64,
-                          color: colorScheme.onSurface.withOpacity(0.6),
+                          Icons.broken_image,
+                          size: 60,
+                          color: subTextColor,
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 22),
 
+            // NAME & PRICE
             Text(
               widget.name,
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: textColor,
+                letterSpacing: 0.3,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "Rp ${widget.price}",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.primary,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: Colors.green[700],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 22),
 
+            // DESCRIPTION
             Text(
               "Deskripsi Produk",
-              style: theme.textTheme.titleMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
+                color: textColor,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               widget.description.isNotEmpty
                   ? widget.description
-                  : "Belum ada deskripsi.",
-              style: theme.textTheme.bodyMedium,
+                  : "Tidak ada deskripsi.",
+              style: TextStyle(fontSize: 14, color: subTextColor),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
-            Text("Jumlah", style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    if (quantity > 1) {
-                      setState(() => quantity--);
-                    }
-                  },
-                  icon: const Icon(Icons.remove),
-                ),
-                Text("$quantity", style: theme.textTheme.titleMedium),
-                IconButton(
-                  onPressed: () {
-                    setState(() => quantity++);
-                  },
-                  icon: const Icon(Icons.add),
-                ),
-              ],
+            // QUANTITY
+            Text(
+              "Jumlah",
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: quantity > 1
+                        ? () => setState(() => quantity--)
+                        : null,
+                    icon: Icon(Icons.remove, color: textColor),
+                  ),
+                  Text(
+                    "$quantity",
+                    style: TextStyle(fontSize: 16, color: textColor),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() => quantity++),
+                    icon: Icon(Icons.add, color: textColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
 
+            // BUTTON
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 onPressed: loading ? null : _addToCart,
-                icon: loading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_shopping_cart),
-                label: const Text("Tambahkan ke Keranjang"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: buttonColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
+                child: loading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Tambah ke Keranjang",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
               ),
             ),
           ],
