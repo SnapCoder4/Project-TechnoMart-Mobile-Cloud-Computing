@@ -30,7 +30,6 @@ class _UserProductDetailPageState extends State<UserProductDetailPage> {
   int quantity = 1;
   bool loading = false;
 
-  // decode sekali saja
   Uint8List? _imageBytes;
 
   @override
