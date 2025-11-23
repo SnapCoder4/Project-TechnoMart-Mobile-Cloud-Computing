@@ -127,7 +127,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               const SizedBox(height: 24),
 
-              // Search Bar
               TextField(
                 controller: _searchC,
                 style: TextStyle(color: textColor),
@@ -187,9 +186,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     final docs = snapshot.data!.docs;
                     final filteredDocs = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final name = (data['name'] ?? '')
-                          .toString()
-                          .toLowerCase();
+                      final name = (data['name'] ?? '').toString().toLowerCase();
                       if (_searchQuery.isEmpty) return true;
                       return name.contains(_searchQuery);
                     }).toList();
@@ -208,23 +205,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       builder: (context, constraints) {
                         int crossAxisCount = 2;
                         double width = constraints.maxWidth;
-                        if (width > 1200)
+
+                        if (width > 1200) {
                           crossAxisCount = 5;
-                        else if (width > 900)
+                        } else if (width > 900) {
                           crossAxisCount = 4;
-                        else if (width > 600)
+                        } else if (width > 600) {
                           crossAxisCount = 3;
+                        }
 
                         return GridView.builder(
                           itemCount: filteredDocs.length,
                           physics: const AlwaysScrollableScrollPhysics(),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.55,
-                              ),
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.55,
+                          ),
                           itemBuilder: (context, index) {
                             final doc = filteredDocs[index];
                             final data = doc.data() as Map<String, dynamic>;
@@ -254,8 +253,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(18),
                                     ),
-                                    child:
-                                        imageBase64 != null &&
+                                    child: imageBase64 != null &&
                                             imageBase64.isNotEmpty
                                         ? Image.memory(
                                             base64Decode(imageBase64),
@@ -317,17 +315,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                   color: subTextColor,
                                                 ),
                                               ),
-
-                                              // === TAMPILKAN DESKRIPSI DI SINI ===
-                                              if (desc
-                                                  .toString()
-                                                  .isNotEmpty) ...[
+                                              if (desc.toString().isNotEmpty) ...[
                                                 const SizedBox(height: 4),
                                                 Text(
                                                   desc,
                                                   maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: subTextColor,
@@ -343,18 +336,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                             children: [
                                               Expanded(
                                                 child: ElevatedButton.icon(
-                                                  style: ElevatedButton.styleFrom(
+                                                  style:
+                                                      ElevatedButton.styleFrom(
                                                     backgroundColor:
                                                         Colors.blueAccent,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 6,
-                                                        ),
-                                                    shape: RoundedRectangleBorder(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(vertical: 6),
+                                                    shape:
+                                                        RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                            12,
-                                                          ),
+                                                        12,
+                                                      ),
                                                     ),
                                                   ),
                                                   icon: const Icon(
@@ -362,37 +355,38 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                     size: 18,
                                                     color: Colors.white,
                                                   ),
-                                                  label: const Text(
-                                                    "Edit",
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                  label: FittedBox(
+                                                    child: Text(
+                                                      "Edit",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
-
                                                   onPressed: () =>
                                                       widget.onEditProduct(
-                                                        doc.id,
-                                                        data,
-                                                      ),
+                                                    doc.id,
+                                                    data,
+                                                  ),
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
                                               Expanded(
                                                 child: ElevatedButton.icon(
-                                                  style: ElevatedButton.styleFrom(
+                                                  style:
+                                                      ElevatedButton.styleFrom(
                                                     backgroundColor:
                                                         Colors.redAccent,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 6,
-                                                        ),
-                                                    shape: RoundedRectangleBorder(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(vertical: 6),
+                                                    shape:
+                                                        RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                            12,
-                                                          ),
+                                                        12,
+                                                      ),
                                                     ),
                                                   ),
                                                   icon: const Icon(
@@ -400,26 +394,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                     size: 18,
                                                     color: Colors.white,
                                                   ),
-                                                  label: const Text(
-                                                    "Hapus",
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                  label: FittedBox(
+                                                    child: Text(
+                                                      "Hapus",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
-
                                                   onPressed: () async {
                                                     final confirm =
                                                         await _confirmDelete(
-                                                          context,
-                                                        );
+                                                            context);
                                                     if (confirm == true) {
                                                       await FirebaseFirestore
                                                           .instance
                                                           .collection(
-                                                            'products',
-                                                          )
+                                                              'products')
                                                           .doc(doc.id)
                                                           .delete();
                                                     }
