@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserCheckoutPage extends StatefulWidget {
   final int totalAmount;
-  final List<Map<String, dynamic>>? selectedProducts; 
+  final List<Map<String, dynamic>>? selectedProducts;
 
   const UserCheckoutPage({
     super.key,
@@ -91,6 +91,7 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
       await orderRef.set({
         "id": orderRef.id,
         "userId": userId,
+        "userEmail": user.email,
         "items": cartItems,
         "status": "Paid",
         "shippingAddress": address ?? "",
@@ -277,7 +278,8 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(16),
                               ),
-                              child: item['image'] != null &&
+                              child:
+                                  item['image'] != null &&
                                       (item['image'] as String).isNotEmpty
                                   ? Image.memory(
                                       base64Decode(item['image']),
@@ -401,7 +403,9 @@ class _UserCheckoutPageState extends State<UserCheckoutPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isProcessing ? null : () => _showConfirmDialog(isDark),
+                onPressed: isProcessing
+                    ? null
+                    : () => _showConfirmDialog(isDark),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
