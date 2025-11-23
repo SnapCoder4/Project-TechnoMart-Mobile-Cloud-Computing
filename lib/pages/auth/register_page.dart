@@ -53,7 +53,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeOutBack,
                 child: Image.asset(
-                  'assets/images/technomart.png',
+                  'assets/images/Technomart.png',
                   height: size.height * 0.18,
                 ),
               ),

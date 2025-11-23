@@ -127,6 +127,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               const SizedBox(height: 24),
 
+              // Search Bar
               TextField(
                 controller: _searchC,
                 style: TextStyle(color: textColor),
@@ -153,6 +154,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
               Text(
                 "Daftar Produk",
@@ -202,198 +204,238 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       );
                     }
 
-                    return GridView.builder(
-                      itemCount: filteredDocs.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                      itemBuilder: (context, index) {
-                        final doc = filteredDocs[index];
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = data['name'] ?? 'Tanpa nama';
-                        final price = data['price'] ?? 0;
-                        final stock = data['stock'] ?? 0;
-                        final desc = data['description'] ?? '';
-                        final imageBase64 = data['image'] as String?;
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = 2;
+                        double width = constraints.maxWidth;
+                        if (width > 1200)
+                          crossAxisCount = 5;
+                        else if (width > 900)
+                          crossAxisCount = 4;
+                        else if (width > 600)
+                          crossAxisCount = 3;
 
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: cardColor,
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  spreadRadius: 2,
-                                  blurRadius: 12,
-                                  offset: const Offset(2, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(18),
+                        return GridView.builder(
+                          itemCount: filteredDocs.length,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.55,
+                              ),
+                          itemBuilder: (context, index) {
+                            final doc = filteredDocs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+
+                            final name = data['name'] ?? 'Tanpa nama';
+                            final price = data['price'] ?? 0;
+                            final stock = data['stock'] ?? 0;
+                            final desc = data['description'] ?? '';
+                            final imageBase64 = data['image'] as String?;
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    spreadRadius: 2,
+                                    blurRadius: 12,
+                                    offset: const Offset(2, 4),
                                   ),
-                                  child:
-                                      imageBase64 != null &&
-                                          imageBase64.isNotEmpty
-                                      ? Image.memory(
-                                          base64Decode(imageBase64),
-                                          height: 120, 
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          height: 120,
-                                          color: isDark
-                                              ? Colors.grey[800]
-                                              : Colors.grey[200],
-                                          alignment: Alignment.center,
-                                          child: Icon(
-                                            Icons.image_not_supported,
-                                            size: 40,
-                                            color: subTextColor,
-                                          ),
-                                        ),
-                                ),
-
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Rp $price",
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: priceColor,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          "Stok: $stock",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: subTextColor,
-                                          ),
-                                        ),
-                                        if (desc.toString().isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            desc,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 13,
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(18),
+                                    ),
+                                    child:
+                                        imageBase64 != null &&
+                                            imageBase64.isNotEmpty
+                                        ? Image.memory(
+                                            base64Decode(imageBase64),
+                                            height: 120,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            height: 140,
+                                            alignment: Alignment.center,
+                                            color: isDark
+                                                ? Colors.grey[800]
+                                                : Colors.grey[200],
+                                            child: Icon(
+                                              Icons.image_not_supported,
+                                              size: 40,
                                               color: subTextColor,
                                             ),
                                           ),
+                                  ),
+
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "Rp $price",
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: priceColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "Stok: $stock",
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: subTextColor,
+                                                ),
+                                              ),
+
+                                              // === TAMPILKAN DESKRIPSI DI SINI ===
+                                              if (desc
+                                                  .toString()
+                                                  .isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  desc,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: subTextColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+
+                                          const SizedBox(height: 8),
+
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.blueAccent,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 6,
+                                                        ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  icon: const Icon(
+                                                    Icons.edit,
+                                                    size: 18,
+                                                    color: Colors.white,
+                                                  ),
+                                                  label: const Text(
+                                                    "Edit",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+
+                                                  onPressed: () =>
+                                                      widget.onEditProduct(
+                                                        doc.id,
+                                                        data,
+                                                      ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.redAccent,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 6,
+                                                        ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  icon: const Icon(
+                                                    Icons.delete,
+                                                    size: 18,
+                                                    color: Colors.white,
+                                                  ),
+                                                  label: const Text(
+                                                    "Hapus",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+
+                                                  onPressed: () async {
+                                                    final confirm =
+                                                        await _confirmDelete(
+                                                          context,
+                                                        );
+                                                    if (confirm == true) {
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection(
+                                                            'products',
+                                                          )
+                                                          .doc(doc.id)
+                                                          .delete();
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
-                                        const Spacer(),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.blueAccent,
-                                                minimumSize: const Size(80, 34),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                "Edit",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              onPressed: () => widget
-                                                  .onEditProduct(doc.id, data),
-                                            ),
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.redAccent,
-                                                minimumSize: const Size(80, 34),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                "Hapus",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              onPressed: () async {
-                                                final confirm =
-                                                    await _confirmDelete(
-                                                      context,
-                                                    );
-                                                if (confirm == true) {
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection('products')
-                                                      .doc(doc.id)
-                                                      .delete();
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     );
