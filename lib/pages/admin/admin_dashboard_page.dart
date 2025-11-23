@@ -127,7 +127,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               const SizedBox(height: 24),
 
-              // SEARCH BAR
+              // SEARCH
               TextField(
                 controller: _searchC,
                 style: TextStyle(color: textColor),
@@ -154,6 +154,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
               Text(
                 "Daftar Produk",
@@ -203,201 +204,280 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       );
                     }
 
-                    return GridView.builder(
-                      itemCount: filteredDocs.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            // DITURUNKAN supaya tile sedikit LEBIH TINGGI
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                      itemBuilder: (context, index) {
-                        final doc = filteredDocs[index];
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = data['name'] ?? 'Tanpa nama';
-                        final price = data['price'] ?? 0;
-                        final stock = data['stock'] ?? 0;
-                        final desc = data['description'] ?? '';
-                        final imageBase64 = data['image'] as String?;
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
 
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: cardColor,
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  spreadRadius: 2,
-                                  blurRadius: 12,
-                                  offset: const Offset(2, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // BAGIAN GAMBAR – tinggi sedikit DIKURANGI
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(18),
+                        // --- RESPONSIVE GRID ---
+                        // HP sangat kecil (<= 360)    -> 1 kolom
+                        // HP normal (361 - 600)      -> 2 kolom
+                        // Tablet kecil (601 - 900)   -> 3 kolom
+                        // Tablet / web sedang        -> 4-5 kolom
+                        int crossAxisCount = 2;
+                        if (width <= 360) {
+                          crossAxisCount = 1;
+                        } else if (width > 1200) {
+                          crossAxisCount = 5;
+                        } else if (width > 900) {
+                          crossAxisCount = 4;
+                        } else if (width > 600) {
+                          crossAxisCount = 3;
+                        }
+
+                        final bool isVerySmall = width <= 360;
+                        final bool isSmallPhone = width > 360 && width <= 420;
+
+                        // Atur tinggi gambar & rasio kartu berdasarkan lebar
+                        final double imageHeight = isVerySmall
+                            ? 120
+                            : isSmallPhone
+                            ? 130
+                            : 140;
+
+                        final double childAspectRatio = isVerySmall
+                            ? 0.80
+                            : 0.65;
+
+                        // Helper font biar mengecil di layar kecil
+                        double font(double normal, double small) =>
+                            (isVerySmall || isSmallPhone) ? small : normal;
+
+                        return GridView.builder(
+                          itemCount: filteredDocs.length,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: childAspectRatio,
+                              ),
+                          itemBuilder: (context, index) {
+                            final doc = filteredDocs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+
+                            final name = data['name'] ?? 'Tanpa nama';
+                            final price = data['price'] ?? 0;
+                            final stock = data['stock'] ?? 0;
+                            final desc = data['description'] ?? '';
+                            final imageBase64 = data['image'] as String?;
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: cardColor,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    spreadRadius: 2,
+                                    blurRadius: 12,
+                                    offset: const Offset(2, 4),
                                   ),
-                                  child:
-                                      imageBase64 != null &&
-                                          imageBase64.isNotEmpty
-                                      ? Image.memory(
-                                          base64Decode(imageBase64),
-                                          height: 120, // sebelumnya 130
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Container(
-                                          height: 120,
-                                          color: isDark
-                                              ? Colors.grey[800]
-                                              : Colors.grey[200],
-                                          alignment: Alignment.center,
-                                          child: Icon(
-                                            Icons.image_not_supported,
-                                            size: 40,
-                                            color: subTextColor,
-                                          ),
-                                        ),
-                                ),
-
-                                // BAGIAN TEKS + TOMBOL
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Rp $price",
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: priceColor,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          "Stok: $stock",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: subTextColor,
-                                          ),
-                                        ),
-                                        if (desc.toString().isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            desc,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 13,
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // Gambar
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(18),
+                                    ),
+                                    child:
+                                        imageBase64 != null &&
+                                            imageBase64.isNotEmpty
+                                        ? Image.memory(
+                                            base64Decode(imageBase64),
+                                            height: imageHeight,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            height: imageHeight,
+                                            alignment: Alignment.center,
+                                            color: isDark
+                                                ? Colors.grey[800]
+                                                : Colors.grey[200],
+                                            child: Icon(
+                                              Icons.image_not_supported,
+                                              size: font(40, 32),
                                               color: subTextColor,
                                             ),
                                           ),
+                                  ),
+
+                                  // Isi card
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: font(16, 14),
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "Rp $price",
+                                                style: TextStyle(
+                                                  fontSize: font(15, 13),
+                                                  fontWeight: FontWeight.bold,
+                                                  color: priceColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "Stok: $stock",
+                                                style: TextStyle(
+                                                  fontSize: font(13, 12),
+                                                  color: subTextColor,
+                                                ),
+                                              ),
+                                              if (desc
+                                                  .toString()
+                                                  .isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  desc,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: font(12, 11),
+                                                    color: subTextColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+
+                                          const SizedBox(height: 8),
+
+                                          // Tombol Edit & Hapus
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.blueAccent,
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isVerySmall
+                                                              ? 4
+                                                              : 6,
+                                                        ),
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  icon: Icon(
+                                                    Icons.edit,
+                                                    size: font(18, 16),
+                                                    color: Colors.white,
+                                                  ),
+                                                  label: FittedBox(
+                                                    child: Text(
+                                                      "Edit",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: font(13, 11),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  onPressed: () =>
+                                                      widget.onEditProduct(
+                                                        doc.id,
+                                                        data,
+                                                      ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.redAccent,
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isVerySmall
+                                                              ? 4
+                                                              : 6,
+                                                        ),
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  icon: Icon(
+                                                    Icons.delete,
+                                                    size: font(18, 16),
+                                                    color: Colors.white,
+                                                  ),
+                                                  label: FittedBox(
+                                                    child: Text(
+                                                      "Hapus",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: font(13, 11),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  onPressed: () async {
+                                                    final confirm =
+                                                        await _confirmDelete(
+                                                          context,
+                                                        );
+                                                    if (confirm == true) {
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection(
+                                                            'products',
+                                                          )
+                                                          .doc(doc.id)
+                                                          .delete();
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
-                                        const Spacer(),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.blueAccent,
-                                                minimumSize: const Size(80, 34),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                "Edit",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              onPressed: () => widget
-                                                  .onEditProduct(doc.id, data),
-                                            ),
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.redAccent,
-                                                minimumSize: const Size(80, 34),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                "Hapus",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              onPressed: () async {
-                                                final confirm =
-                                                    await _confirmDelete(
-                                                      context,
-                                                    );
-                                                if (confirm == true) {
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection('products')
-                                                      .doc(doc.id)
-                                                      .delete();
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     );

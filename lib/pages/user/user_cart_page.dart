@@ -154,8 +154,10 @@ class _CartPageState extends State<CartPage> {
                           activeColor: Colors.green,
                         ),
                         IconButton(
-                          icon:
-                              const Icon(Icons.delete_outline, color: Colors.red),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
@@ -271,9 +273,14 @@ class _CartPageState extends State<CartPage> {
                                   ? () {
                                       final selectedDocs = docs
                                           .where(
-                                              (doc) => selectedItems[doc.id] == true)
-                                          .map((doc) =>
-                                              doc.data() as Map<String, dynamic>)
+                                            (doc) =>
+                                                selectedItems[doc.id] == true,
+                                          )
+                                          .map(
+                                            (doc) =>
+                                                doc.data()
+                                                    as Map<String, dynamic>,
+                                          )
                                           .toList();
 
                                       Navigator.push(

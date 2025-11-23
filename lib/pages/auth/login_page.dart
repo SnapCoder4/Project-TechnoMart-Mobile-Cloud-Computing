@@ -52,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
                 duration: const Duration(milliseconds: 600),
                 curve: Curves.easeOutBack,
                 child: Image.asset(
-                  'assets/images/technomart.png',
+                  'assets/images/Technomart.png',
                   height: size.height * 0.18,
                 ),
               ),
