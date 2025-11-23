@@ -127,6 +127,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               const SizedBox(height: 24),
 
+              // SEARCH
               TextField(
                 controller: _searchC,
                 style: TextStyle(color: textColor),
@@ -186,7 +187,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     final docs = snapshot.data!.docs;
                     final filteredDocs = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final name = (data['name'] ?? '').toString().toLowerCase();
+                      final name = (data['name'] ?? '')
+                          .toString()
+                          .toLowerCase();
                       if (_searchQuery.isEmpty) return true;
                       return name.contains(_searchQuery);
                     }).toList();
@@ -203,10 +206,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
                     return LayoutBuilder(
                       builder: (context, constraints) {
-                        int crossAxisCount = 2;
-                        double width = constraints.maxWidth;
+                        final width = constraints.maxWidth;
 
-                        if (width > 1200) {
+                        // --- RESPONSIVE GRID ---
+                        // HP sangat kecil (<= 360)    -> 1 kolom
+                        // HP normal (361 - 600)      -> 2 kolom
+                        // Tablet kecil (601 - 900)   -> 3 kolom
+                        // Tablet / web sedang        -> 4-5 kolom
+                        int crossAxisCount = 2;
+                        if (width <= 360) {
+                          crossAxisCount = 1;
+                        } else if (width > 1200) {
                           crossAxisCount = 5;
                         } else if (width > 900) {
                           crossAxisCount = 4;
@@ -214,16 +224,34 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           crossAxisCount = 3;
                         }
 
+                        final bool isVerySmall = width <= 360;
+                        final bool isSmallPhone = width > 360 && width <= 420;
+
+                        // Atur tinggi gambar & rasio kartu berdasarkan lebar
+                        final double imageHeight = isVerySmall
+                            ? 120
+                            : isSmallPhone
+                            ? 130
+                            : 140;
+
+                        final double childAspectRatio = isVerySmall
+                            ? 0.80
+                            : 0.65;
+
+                        // Helper font biar mengecil di layar kecil
+                        double font(double normal, double small) =>
+                            (isVerySmall || isSmallPhone) ? small : normal;
+
                         return GridView.builder(
                           itemCount: filteredDocs.length,
                           physics: const AlwaysScrollableScrollPhysics(),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.55,
-                          ),
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: childAspectRatio,
+                              ),
                           itemBuilder: (context, index) {
                             final doc = filteredDocs[index];
                             final data = doc.data() as Map<String, dynamic>;
@@ -249,35 +277,38 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                               child: Column(
                                 children: [
+                                  // Gambar
                                   ClipRRect(
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(18),
                                     ),
-                                    child: imageBase64 != null &&
+                                    child:
+                                        imageBase64 != null &&
                                             imageBase64.isNotEmpty
                                         ? Image.memory(
                                             base64Decode(imageBase64),
-                                            height: 120,
+                                            height: imageHeight,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
                                           )
                                         : Container(
-                                            height: 140,
+                                            height: imageHeight,
                                             alignment: Alignment.center,
                                             color: isDark
                                                 ? Colors.grey[800]
                                                 : Colors.grey[200],
                                             child: Icon(
                                               Icons.image_not_supported,
-                                              size: 40,
+                                              size: font(40, 32),
                                               color: subTextColor,
                                             ),
                                           ),
                                   ),
 
+                                  // Isi card
                                   Expanded(
                                     child: Padding(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.all(10),
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
@@ -293,7 +324,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
-                                                  fontSize: 16,
+                                                  fontSize: font(16, 14),
                                                   fontWeight: FontWeight.bold,
                                                   color: textColor,
                                                 ),
@@ -302,7 +333,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                               Text(
                                                 "Rp $price",
                                                 style: TextStyle(
-                                                  fontSize: 15,
+                                                  fontSize: font(15, 13),
                                                   fontWeight: FontWeight.bold,
                                                   color: priceColor,
                                                 ),
@@ -311,18 +342,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                               Text(
                                                 "Stok: $stock",
                                                 style: TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: font(13, 12),
                                                   color: subTextColor,
                                                 ),
                                               ),
-                                              if (desc.toString().isNotEmpty) ...[
+                                              if (desc
+                                                  .toString()
+                                                  .isNotEmpty) ...[
                                                 const SizedBox(height: 4),
                                                 Text(
                                                   desc,
                                                   maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   style: TextStyle(
-                                                    fontSize: 12,
+                                                    fontSize: font(12, 11),
                                                     color: subTextColor,
                                                   ),
                                                 ),
@@ -332,27 +366,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
                                           const SizedBox(height: 8),
 
+                                          // Tombol Edit & Hapus
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: ElevatedButton.icon(
-                                                  style:
-                                                      ElevatedButton.styleFrom(
+                                                  style: ElevatedButton.styleFrom(
                                                     backgroundColor:
                                                         Colors.blueAccent,
-                                                    padding: const EdgeInsets
-                                                        .symmetric(vertical: 6),
-                                                    shape:
-                                                        RoundedRectangleBorder(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isVerySmall
+                                                              ? 4
+                                                              : 6,
+                                                        ),
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    shape: RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                        12,
-                                                      ),
+                                                            12,
+                                                          ),
                                                     ),
                                                   ),
-                                                  icon: const Icon(
+                                                  icon: Icon(
                                                     Icons.edit,
-                                                    size: 18,
+                                                    size: font(18, 16),
                                                     color: Colors.white,
                                                   ),
                                                   label: FittedBox(
@@ -362,36 +402,42 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold,
+                                                        fontSize: font(13, 11),
                                                       ),
                                                     ),
                                                   ),
                                                   onPressed: () =>
                                                       widget.onEditProduct(
-                                                    doc.id,
-                                                    data,
-                                                  ),
+                                                        doc.id,
+                                                        data,
+                                                      ),
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
                                               Expanded(
                                                 child: ElevatedButton.icon(
-                                                  style:
-                                                      ElevatedButton.styleFrom(
+                                                  style: ElevatedButton.styleFrom(
                                                     backgroundColor:
                                                         Colors.redAccent,
-                                                    padding: const EdgeInsets
-                                                        .symmetric(vertical: 6),
-                                                    shape:
-                                                        RoundedRectangleBorder(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: isVerySmall
+                                                              ? 4
+                                                              : 6,
+                                                        ),
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    shape: RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                        12,
-                                                      ),
+                                                            12,
+                                                          ),
                                                     ),
                                                   ),
-                                                  icon: const Icon(
+                                                  icon: Icon(
                                                     Icons.delete,
-                                                    size: 18,
+                                                    size: font(18, 16),
                                                     color: Colors.white,
                                                   ),
                                                   label: FittedBox(
@@ -401,18 +447,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold,
+                                                        fontSize: font(13, 11),
                                                       ),
                                                     ),
                                                   ),
                                                   onPressed: () async {
                                                     final confirm =
                                                         await _confirmDelete(
-                                                            context);
+                                                          context,
+                                                        );
                                                     if (confirm == true) {
                                                       await FirebaseFirestore
                                                           .instance
                                                           .collection(
-                                                              'products')
+                                                            'products',
+                                                          )
                                                           .doc(doc.id)
                                                           .delete();
                                                     }
